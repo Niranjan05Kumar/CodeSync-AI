@@ -54,3 +54,24 @@ export interface Collaborator {
   };
   activeFileId?: string;
 }
+
+export interface MonacoChange {
+  range: {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  };
+  rangeOffset: number;
+  rangeLength: number;
+  text: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  username: string;
+  color: string;
+  message: string;
+  createdAt: string;
+}

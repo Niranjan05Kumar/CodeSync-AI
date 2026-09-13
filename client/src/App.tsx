@@ -3,6 +3,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { useAuthStore } from './store/useAuthStore';
 import { useProjectStore } from './store/useProjectStore';
 import { useUIStore } from './store/useUIStore';
+import { useSocketSync } from './hooks/useSocketSync';
 
 export const App: React.FC = () => {
   const { initAuth } = useAuthStore();
@@ -13,6 +14,9 @@ export const App: React.FC = () => {
     toggleBottomPanel, 
     toggleAiPanel 
   } = useUIStore();
+
+  // Initialize real-time room synchronization
+  useSocketSync();
 
   useEffect(() => {
     // 1. Initialize authentication from localStorage

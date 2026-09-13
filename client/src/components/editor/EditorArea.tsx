@@ -4,25 +4,33 @@ import type { editor as MonacoEditorType } from 'monaco-editor';
 import { Code2, Command, FileText, FolderPlus, Terminal, Loader2 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useSocketSync } from '../../hooks/useSocketSync';
+import { getSocket } from '../../sockets/socketClient';
 import { EditorTabs } from './EditorTabs';
 import { Breadcrumbs } from './Breadcrumbs';
 import { DEFAULT_MONACO_OPTIONS, getMonacoLanguage } from './monacoConfig';
 import { useMonacoDecorations } from './useMonacoDecorations';
+import { MonacoChange } from '../../types';
 
 export const EditorArea: React.FC = () => {
   const { 
     openTabs, 
     activeTabId, 
     activeFileContent, 
+    activeFileVersion,
     updateActiveContent, 
     saveActiveFile,
     collaborators 
   } = useProjectStore();
 
+  const { user } = useAuthStore();
   const { setQuickOpenOpen, setCreateProjectOpen, setCursorPosition } = useUIStore();
+  const { broadcastCursorMove, broadcastDeltaChange } = useSocketSync();
 
   const [editorInstance, setEditorInstance] = useState<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const debounceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isApplyingRemoteRef = useRef(false);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
@@ -62,15 +70,42 @@ export const EditorArea: React.FC = () => {
   const handleEditorMount: OnMount = (editor, monaco) => {
     setEditorInstance(editor);
 
-    // Track active cursor position for Status Bar
+    // 1. Track local cursor position & broadcast to peers
     editor.onDidChangeCursorPosition((e) => {
-      setCursorPosition({
+      const pos = {
         lineNumber: e.position.lineNumber,
         column: e.position.column
-      });
+      };
+      setCursorPosition(pos);
+
+      if (activeTab) {
+        broadcastCursorMove(activeTab.id, pos);
+      }
     });
 
-    // Register Ctrl+S / Cmd+S save hotkey
+    // 2. Broadcast local delta changes on model content change
+    editor.onDidChangeModelContent((event) => {
+      // If changes were applied from a remote peer, DO NOT broadcast back (prevent echo loop)
+      if (isApplyingRemoteRef.current) return;
+
+      if (activeTab && event.changes && event.changes.length > 0) {
+        const monacoChanges: MonacoChange[] = event.changes.map((c) => ({
+          range: {
+            startLineNumber: c.range.startLineNumber,
+            startColumn: c.range.startColumn,
+            endLineNumber: c.range.endLineNumber,
+            endColumn: c.range.endColumn
+          },
+          rangeOffset: c.rangeOffset,
+          rangeLength: c.rangeLength,
+          text: c.text
+        }));
+
+        broadcastDeltaChange(activeTab.id, monacoChanges, activeFileVersion);
+      }
+    });
+
+    // 3. Register Ctrl+S / Cmd+S save hotkey
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       if (debounceSaveTimerRef.current) {
         clearTimeout(debounceSaveTimerRef.current);
@@ -82,8 +117,62 @@ export const EditorArea: React.FC = () => {
     editor.focus();
   };
 
-  // Handle changes with 1.5s debounced database persistence
+  // Listen for remote editor deltas from Socket.IO
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleRemoteChange = (data: {
+      fileId: string;
+      changes: MonacoChange[];
+      senderId: string;
+      version: number;
+    }) => {
+      // Ignore if sent by self
+      if (data.senderId === user?.id) return;
+      if (!editorInstance) return;
+
+      // Only apply if currently viewing the affected file
+      if (data.fileId === activeTabId) {
+        const model = editorInstance.getModel();
+        if (!model) return;
+
+        isApplyingRemoteRef.current = true;
+        try {
+          const edits = data.changes.map((c) => ({
+            range: {
+              startLineNumber: c.range.startLineNumber,
+              startColumn: c.range.startColumn,
+              endLineNumber: c.range.endLineNumber,
+              endColumn: c.range.endColumn
+            },
+            text: c.text,
+            forceMoveMarkers: true
+          }));
+
+          // CRITICAL: model.applyEdits() preserves local cursor and undo stack
+          model.applyEdits(edits);
+
+          // Update store content quietly
+          updateActiveContent(model.getValue());
+        } catch (err) {
+          console.warn('[EditorArea] Failed to apply remote edits:', err);
+        } finally {
+          isApplyingRemoteRef.current = false;
+        }
+      }
+    };
+
+    socket.on('editor:change', handleRemoteChange);
+
+    return () => {
+      socket.off('editor:change', handleRemoteChange);
+    };
+  }, [editorInstance, activeTabId, user?.id, updateActiveContent]);
+
+  // Handle local typing with 1.5s debounced database persistence
   const handleEditorChange = useCallback((value: string | undefined) => {
+    if (isApplyingRemoteRef.current) return;
+
     const text = value ?? '';
     updateActiveContent(text);
 

@@ -10,14 +10,8 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
-
-interface ChatMessage {
-  id: string;
-  sender: string;
-  color: string;
-  text: string;
-  timestamp: string;
-}
+import { useProjectStore } from '../../store/useProjectStore';
+import { useSocketSync } from '../../hooks/useSocketSync';
 
 export const BottomDock: React.FC = () => {
   const { 
@@ -29,6 +23,8 @@ export const BottomDock: React.FC = () => {
   } = useUIStore();
 
   const { user } = useAuthStore();
+  const { chatMessages } = useProjectStore();
+  const { broadcastChatMessage } = useSocketSync();
 
   const [isMaximized, setIsMaximized] = useState(false);
   const [outputLogs, setOutputLogs] = useState<string[]>([
@@ -45,16 +41,7 @@ export const BottomDock: React.FC = () => {
   ]);
   const [terminalInput, setTerminalInput] = useState('');
 
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      sender: 'CodeSync AI',
-      color: '#007acc',
-      text: 'Welcome to your collaborative workspace! Type in the chat to talk to your team.',
-      timestamp: '12:00 PM'
-    }
-  ]);
+  // Chat input
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -107,20 +94,7 @@ export const BottomDock: React.FC = () => {
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        sender: user ? user.username : 'Guest User',
-        color: '#4fc1ff',
-        text: chatInput.trim(),
-        timestamp: timeStr
-      }
-    ]);
+    broadcastChatMessage(chatInput.trim());
     setChatInput('');
   };
 
@@ -267,27 +241,33 @@ export const BottomDock: React.FC = () => {
           <div className="h-full flex flex-col font-sans">
             {/* Messages Stream */}
             <div className="flex-1 overflow-y-auto space-y-3 pr-2 select-text">
-              {chatMessages.map((msg) => (
-                <div key={msg.id} className="flex items-start gap-2.5">
-                  <div
-                    style={{ backgroundColor: msg.color }}
-                    className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-black uppercase shrink-0"
-                  >
-                    {msg.sender.substring(0, 2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-ide-xs font-semibold text-white truncate">
-                        {msg.sender}
-                      </span>
-                      <span className="text-[10px] text-ide-dim">{msg.timestamp}</span>
+              {chatMessages.map((msg) => {
+                const timeStr = msg.createdAt 
+                  ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                  : '';
+
+                return (
+                  <div key={msg.id} className="flex items-start gap-2.5">
+                    <div
+                      style={{ backgroundColor: msg.color || '#4fc1ff' }}
+                      className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-black uppercase shrink-0"
+                    >
+                      {msg.username.substring(0, 2)}
                     </div>
-                    <p className="text-ide-sm text-ide-text mt-0.5 leading-relaxed break-words">
-                      {msg.text}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-ide-xs font-semibold text-white truncate">
+                          {msg.username}
+                        </span>
+                        {timeStr && <span className="text-[10px] text-ide-dim">{timeStr}</span>}
+                      </div>
+                      <p className="text-ide-sm text-ide-text mt-0.5 leading-relaxed break-words">
+                        {msg.message}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={chatEndRef} />
             </div>
 

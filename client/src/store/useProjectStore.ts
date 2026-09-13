@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, FileTreeNode, EditorTab, Collaborator } from '../types';
+import { Project, FileTreeNode, EditorTab, Collaborator, ChatMessage } from '../types';
 import { projectApi } from '../api/projectApi';
 import { fileApi } from '../api/fileApi';
 
@@ -14,6 +14,7 @@ interface ProjectState {
   unsavedFileIds: string[];
   isTreeLoading: boolean;
   collaborators: Collaborator[];
+  chatMessages: ChatMessage[];
 
   fetchProjects: () => Promise<void>;
   selectProject: (project: Project) => Promise<void>;
@@ -25,6 +26,13 @@ interface ProjectState {
 
   updateActiveContent: (content: string) => void;
   saveActiveFile: () => Promise<void>;
+
+  // Real-time synchronization actions
+  setCollaborators: (collabs: Collaborator[]) => void;
+  updateCollaboratorCursor: (userId: string, position: { lineNumber: number; column: number }, fileId: string, username?: string, color?: string) => void;
+  removeCollaborator: (userId: string) => void;
+  setChatMessages: (msgs: ChatMessage[]) => void;
+  addChatMessage: (msg: ChatMessage) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -37,10 +45,51 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeFileVersion: 1,
   unsavedFileIds: [],
   isTreeLoading: false,
-  collaborators: [
-    { id: 'mock-1', username: 'Rahul Sharma', color: '#4fc1ff' },
-    { id: 'mock-2', username: 'Aman Verma', color: '#e5a93c' }
-  ],
+  collaborators: [],
+  chatMessages: [],
+
+  setCollaborators: (collaborators) => set({ collaborators }),
+
+  updateCollaboratorCursor: (userId, position, fileId, username, color) => {
+    const { collaborators } = get();
+    const existingIndex = collaborators.findIndex((c) => c.id === userId);
+
+    if (existingIndex >= 0) {
+      const updated = [...collaborators];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        cursorPosition: position,
+        activeFileId: fileId,
+        color: color || updated[existingIndex].color
+      };
+      set({ collaborators: updated });
+    } else if (username) {
+      set({
+        collaborators: [
+          ...collaborators,
+          {
+            id: userId,
+            username,
+            color: color || '#4fc1ff',
+            cursorPosition: position,
+            activeFileId: fileId
+          }
+        ]
+      });
+    }
+  },
+
+  removeCollaborator: (userId) => {
+    set((s) => ({
+      collaborators: s.collaborators.filter((c) => c.id !== userId)
+    }));
+  },
+
+  setChatMessages: (chatMessages) => set({ chatMessages }),
+
+  addChatMessage: (msg) => set((s) => ({
+    chatMessages: [...s.chatMessages, msg]
+  })),
 
   fetchProjects: async () => {
     try {

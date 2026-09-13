@@ -5,8 +5,10 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+import http from 'http';
 import { app } from './app';
 import { checkDatabaseHealth, closePool } from './db/pool';
+import { initSocketServer } from './sockets/socketServer';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
@@ -28,10 +30,13 @@ async function startServer() {
   console.log(`✅ Database connected (${health.latencyMs}ms)`);
   console.log(`   pgvector extension: ${health.hasVector ? 'Active ✅' : 'Missing ❌'}`);
 
-  // Start HTTP listener
-  console.log('[2/2] Starting Express HTTP server...');
-  const server = app.listen(PORT, () => {
-    console.log(`\n🚀 CodeSync AI API Server running at http://localhost:${PORT}`);
+  // Start HTTP and Socket.IO listener
+  console.log('[2/2] Starting HTTP & Socket.IO server...');
+  const httpServer = http.createServer(app);
+  const io = initSocketServer(httpServer);
+
+  const server = httpServer.listen(PORT, () => {
+    console.log(`\n🚀 CodeSync AI Server & Socket.IO running at http://localhost:${PORT}`);
     console.log(`   Health Check: http://localhost:${PORT}/api/v1/health`);
     console.log(`   Environment:  ${process.env.NODE_ENV || 'development'}\n`);
   });
