@@ -28,6 +28,27 @@ export interface ExplainResult {
   explanation: string;
 }
 
+function safeJsonParse(raw: string): any {
+  if (!raw) return null;
+  const cleaned = raw.trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+      } catch {}
+    }
+    return null;
+  }
+}
+
 export const aiService = {
   /**
    * Single-file structured code review
@@ -75,7 +96,7 @@ If no issues are found, return an empty array for "issues".`
 
         const content = completion.choices[0]?.message?.content;
         if (content) {
-          const parsed = JSON.parse(content);
+          const parsed = safeJsonParse(content);
           if (parsed && typeof parsed.summary === 'string' && Array.isArray(parsed.issues)) {
             return parsed as ReviewResult;
           }
@@ -123,7 +144,7 @@ Return a valid JSON object matching this schema:
 
         const content = completion.choices[0]?.message?.content;
         if (content) {
-          const parsed = JSON.parse(content);
+          const parsed = safeJsonParse(content);
           if (parsed && parsed.explanation && parsed.rootCause && parsed.fixedCode) {
             return parsed as DebugResult;
           }
@@ -171,7 +192,7 @@ Return a valid JSON object matching this schema:
 
         const content = completion.choices[0]?.message?.content;
         if (content) {
-          const parsed = JSON.parse(content);
+          const parsed = safeJsonParse(content);
           if (parsed && parsed.overview && parsed.complexity) {
             return parsed as ExplainResult;
           }
