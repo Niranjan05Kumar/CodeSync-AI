@@ -9,7 +9,9 @@ import { BottomDock } from '../dock/BottomDock';
 import { AIAssistantSidebar } from '../ai/AIAssistantSidebar';
 import { QuickOpenModal } from '../modals/QuickOpenModal';
 import { CreateProjectModal } from '../modals/CreateProjectModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { AuthModal } from '../auth/AuthModal';
+import { NotificationToast } from './NotificationToast';
 import { useUIStore } from '../../store/useUIStore';
 
 export const AppLayout: React.FC = () => {
@@ -118,10 +120,12 @@ export const AppLayout: React.FC = () => {
       {/* 3. Bottom Status Bar (24px) */}
       <StatusBar />
 
-      {/* 4. Global Modals */}
+      {/* 4. Global Modals & Notifications */}
       <QuickOpenModal />
       <CreateProjectModal />
+      <ConfirmModal />
       <AuthModal />
+      <NotificationToast />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FileTreeNode } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
+import { useUIStore } from '../../store/useUIStore';
 import { fileApi } from '../../api/fileApi';
 
 interface FileItemProps {
@@ -29,7 +30,8 @@ export const FileItem: React.FC<FileItemProps> = ({ node, level }) => {
   const [inlineChildCreate, setInlineChildCreate] = useState<'file' | 'folder' | null>(null);
   const [childItemName, setChildItemName] = useState('');
 
-  const { currentProject, activeTabId, openFile, refreshTree, closeTab } = useProjectStore();
+  const { currentProject, openFile, activeTabId, refreshTree, closeTab } = useProjectStore();
+  const { showConfirm, showToast } = useUIStore();
 
   const handleCreateChild = async () => {
     if (!currentProject || !childItemName.trim() || !inlineChildCreate) {
@@ -48,8 +50,9 @@ export const FileItem: React.FC<FileItemProps> = ({ node, level }) => {
       setInlineChildCreate(null);
       setChildItemName('');
       await refreshTree();
+      showToast(`Created ${inlineChildCreate} '${childItemName.trim()}'`, 'success');
     } catch (err: any) {
-      alert(`Creation failed: ${err.message}`);
+      showToast(`Creation failed: ${err.message}`, 'error');
       setInlineChildCreate(null);
       setChildItemName('');
     }
@@ -85,22 +88,35 @@ export const FileItem: React.FC<FileItemProps> = ({ node, level }) => {
       await fileApi.renameFileOrFolder(currentProject.id, node.id, editName.trim());
       setIsEditing(false);
       await refreshTree();
+      showToast(`Renamed to '${editName.trim()}'`, 'success');
     } catch (err: any) {
-      alert(`Rename failed: ${err.message}`);
+      showToast(`Rename failed: ${err.message}`, 'error');
       setIsEditing(false);
     }
   };
 
   const handleDelete = async () => {
     if (!currentProject) return;
-    if (!confirm(`Are you sure you want to delete '${node.name}'?`)) return;
+
+    const confirmed = await showConfirm({
+      title: `Delete ${node.isDirectory ? 'Folder' : 'File'}`,
+      message: `Are you sure you want to permanently delete '${node.name}'?${
+        node.isDirectory ? ' All nested files and subdirectories will also be deleted.' : ' This action cannot be undone.'
+      }`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       await fileApi.deleteFileOrFolder(currentProject.id, node.id);
       closeTab(node.id);
       await refreshTree();
+      showToast(`Deleted '${node.name}'`, 'info');
     } catch (err: any) {
-      alert(`Delete failed: ${err.message}`);
+      showToast(`Delete failed: ${err.message}`, 'error');
     }
   };
 

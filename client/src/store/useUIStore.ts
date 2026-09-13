@@ -1,5 +1,21 @@
 import { create } from 'zustand';
 
+export interface ConfirmDialogOptions {
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+  resolve?: (value: boolean) => void;
+}
+
+export interface ToastItem {
+  id: string;
+  message: string;
+  type: 'error' | 'warning' | 'info' | 'success';
+  timestamp: number;
+}
+
 export interface UIState {
   // Panel Visibility
   isSidebarOpen: boolean;
@@ -21,6 +37,10 @@ export interface UIState {
   isCreateProjectOpen: boolean;
   isAuthModalOpen: boolean;
 
+  // Custom Confirmation Dialog & Toasts
+  confirmDialog: ConfirmDialogOptions | null;
+  toasts: ToastItem[];
+
   // Actions
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -40,9 +60,15 @@ export interface UIState {
   setQuickOpenOpen: (open: boolean) => void;
   setCreateProjectOpen: (open: boolean) => void;
   setAuthModalOpen: (open: boolean) => void;
+
+  showConfirm: (options: Omit<ConfirmDialogOptions, 'resolve'>) => Promise<boolean>;
+  closeConfirm: (result: boolean) => void;
+
+  showToast: (message: string, type?: 'error' | 'warning' | 'info' | 'success') => void;
+  removeToast: (id: string) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   isSidebarOpen: true,
   isAiPanelOpen: false,
   isBottomPanelOpen: true,
@@ -58,6 +84,9 @@ export const useUIStore = create<UIState>((set) => ({
   isQuickOpenOpen: false,
   isCreateProjectOpen: false,
   isAuthModalOpen: false,
+
+  confirmDialog: null,
+  toasts: [],
 
   toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
   setSidebarOpen: (open) => set({ isSidebarOpen: open }),
@@ -85,5 +114,38 @@ export const useUIStore = create<UIState>((set) => ({
 
   setQuickOpenOpen: (open) => set({ isQuickOpenOpen: open }),
   setCreateProjectOpen: (open) => set({ isCreateProjectOpen: open }),
-  setAuthModalOpen: (open) => set({ isAuthModalOpen: open })
+  setAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+
+  showConfirm: (options) => {
+    return new Promise<boolean>((resolve) => {
+      set({
+        confirmDialog: {
+          ...options,
+          resolve
+        }
+      });
+    });
+  },
+
+  closeConfirm: (result) => {
+    const dialog = get().confirmDialog;
+    if (dialog?.resolve) {
+      dialog.resolve(result);
+    }
+    set({ confirmDialog: null });
+  },
+
+  showToast: (message, type = 'info') => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    set((s) => ({
+      toasts: [...s.toasts, { id, message, type, timestamp: Date.now() }]
+    }));
+    setTimeout(() => {
+      get().removeToast(id);
+    }, 4500);
+  },
+
+  removeToast: (id) => {
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+  }
 }));

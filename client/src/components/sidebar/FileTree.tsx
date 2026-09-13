@@ -3,6 +3,7 @@ import { FileTreeNode } from '../../types';
 import { FileItem } from './FileItem';
 import { FileCode, Folder } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
+import { useUIStore } from '../../store/useUIStore';
 import { fileApi } from '../../api/fileApi';
 
 interface FileTreeProps {
@@ -17,6 +18,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onCancelRootCreate
 }) => {
   const { fileTree, currentProject, refreshTree } = useProjectStore();
+  const { showToast } = useUIStore();
   const [rootItemName, setRootItemName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,11 +37,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
         isDirectory: creatingRootType === 'folder',
         content: creatingRootType === 'file' ? '' : undefined
       });
+      const createdType = creatingRootType;
+      const createdName = rootItemName.trim();
       setRootItemName('');
       onCancelRootCreate?.();
       await refreshTree();
+      showToast(`Created ${createdType} '${createdName}'`, 'success');
     } catch (err: any) {
-      alert(`Creation failed: ${err.message}`);
+      showToast(`Creation failed: ${err.message}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
