@@ -343,14 +343,82 @@ async function runWithSubprocessFallback(
   });
 }
 
+let resolvedPythonPath: string | null = null;
+
+function resolvePythonCommand(): string {
+  if (resolvedPythonPath) return resolvedPythonPath;
+
+  if (process.platform !== 'win32') {
+    resolvedPythonPath = 'python3';
+    return resolvedPythonPath;
+  }
+
+  // On Windows, locate the direct Python binary to bypass the Microsoft Store / WindowsApps stub
+  const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+
+  // 1. Check AppData/Local/Python/pythoncore-*
+  const pythonCoreDir = path.join(localAppData, 'Python');
+  if (fs.existsSync(pythonCoreDir)) {
+    try {
+      const subdirs = fs.readdirSync(pythonCoreDir);
+      for (const sub of subdirs) {
+        const candidate = path.join(pythonCoreDir, sub, 'python.exe');
+        if (fs.existsSync(candidate)) {
+          resolvedPythonPath = candidate;
+          return resolvedPythonPath;
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Check AppData/Local/Programs/Python/Python*
+  const programsDir = path.join(localAppData, 'Programs', 'Python');
+  if (fs.existsSync(programsDir)) {
+    try {
+      const subdirs = fs.readdirSync(programsDir);
+      for (const sub of subdirs) {
+        const candidate = path.join(programsDir, sub, 'python.exe');
+        if (fs.existsSync(candidate)) {
+          resolvedPythonPath = candidate;
+          return resolvedPythonPath;
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Check C:\Program Files\Python* or C:\Python*
+  try {
+    const rootDirs = fs.readdirSync('C:\\');
+    for (const dir of rootDirs) {
+      if (dir.toLowerCase().startsWith('python')) {
+        const candidate = path.join('C:\\', dir, 'python.exe');
+        if (fs.existsSync(candidate)) {
+          resolvedPythonPath = candidate;
+          return resolvedPythonPath;
+        }
+      }
+    }
+  } catch {}
+
+  // 4. Try 'py' launcher (bypasses WindowsApps redirector)
+  try {
+    const { execSync } = require('child_process');
+    execSync('py -u -c "import sys"', { stdio: 'ignore' });
+    resolvedPythonPath = 'py';
+    return resolvedPythonPath;
+  } catch {}
+
+  resolvedPythonPath = 'python';
+  return resolvedPythonPath;
+}
+
 function getFileAndCmd(language: string): { filename: string; command: string[] } {
   const lang = language.toLowerCase();
   switch (lang) {
     case 'python':
     case 'py': {
-      // In Windows, python is often 'python' instead of 'python3'.
-      // -u flag forces unbuffered binary stdout and stderr
-      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+      // In Windows, use direct python path or py to avoid WindowsApps download stub
+      const pythonCmd = resolvePythonCommand();
       return {
         filename: 'main.py',
         command: [pythonCmd, '-u', 'main.py']
