@@ -247,9 +247,24 @@ async function runWithSubprocessFallback(
     let child: any;
 
     try {
+      let envPath = process.env.PATH || '';
+      if (process.platform === 'win32') {
+        const commonCppPaths = [
+          'C:\\msys64\\ucrt64\\bin',
+          'C:\\msys64\\mingw64\\bin',
+          'C:\\MinGW\\bin',
+          'C:\\TDM-GCC-64\\bin'
+        ];
+        for (const p of commonCppPaths) {
+          if (fs.existsSync(p) && !envPath.includes(p)) {
+            envPath = `${p};${envPath}`;
+          }
+        }
+      }
+
       child = spawn(cmd, args, {
         cwd: hostScratchDir,
-        env: { PATH: process.env.PATH, NODE_ENV: 'production' },
+        env: { ...process.env, PATH: envPath, NODE_ENV: 'production' },
         stdio: ['pipe', 'pipe', 'pipe']
       });
     } catch (spawnErr: any) {
@@ -437,10 +452,18 @@ function getFileAndCmd(language: string): { filename: string; command: string[] 
         command: ['node', 'index.js']
       };
     case 'cpp':
-    case 'c':
       return {
         filename: 'main.cpp',
-        command: ['sh', '-c', 'g++ main.cpp -O2 -o main && ./main']
+        command: process.platform === 'win32'
+          ? ['cmd.exe', '/c', 'g++ main.cpp -O2 -o main.exe && main.exe']
+          : ['sh', '-c', 'g++ main.cpp -O2 -o main && ./main']
+      };
+    case 'c':
+      return {
+        filename: 'main.c',
+        command: process.platform === 'win32'
+          ? ['cmd.exe', '/c', 'gcc main.c -O2 -o main.exe && main.exe']
+          : ['sh', '-c', 'gcc main.c -O2 -o main && ./main']
       };
     default:
       return {
