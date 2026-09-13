@@ -64,11 +64,17 @@ export async function request<T = any>(
             throw new ApiRequestError(retryData.error?.message || 'Request failed', retryRes.status, retryData.error?.code);
           }
           return retryData.data;
+        } else {
+          // Refresh token invalid or secrets changed: purge stale credentials
+          localStorage.removeItem('codesync_access_token');
+          localStorage.removeItem('codesync_refresh_token');
         }
       } catch {
         localStorage.removeItem('codesync_access_token');
         localStorage.removeItem('codesync_refresh_token');
       }
+    } else {
+      localStorage.removeItem('codesync_access_token');
     }
   }
 
