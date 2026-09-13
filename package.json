@@ -1,0 +1,31 @@
+{
+  "name": "codesync-ai",
+  "version": "0.1.0",
+  "description": "AI-Powered Real-Time Collaborative Cloud Code Editor",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "worker"
+  ],
+  "scripts": {
+    "db:migrate": "npm --prefix server run db:migrate",
+    "db:test": "npm --prefix server run db:test",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:worker": "npm --prefix worker run dev",
+    "build:server": "npm --prefix server run build",
+    "type-check": "npm --prefix server run type-check"
+  },
+  "keywords": [
+    "cloud-ide",
+    "real-time",
+    "collaboration",
+    "monaco-editor",
+    "rag",
+    "pgvector",
+    "docker-sandbox"
+  ],
+  "author": "CodeSync AI Team",
+  "license": "MIT"
+}
