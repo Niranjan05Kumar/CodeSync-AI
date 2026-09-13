@@ -38,7 +38,7 @@ export function errorHandler(
       error: {
         message: 'A record with this identifier already exists',
         code: 'DUPLICATE_KEY',
-        detail: err.detail
+        ...(process.env.NODE_ENV !== 'production' && err.detail ? { detail: err.detail } : {})
       }
     });
   }
@@ -65,12 +65,15 @@ export function errorHandler(
     });
   }
 
-  // Fallback to 500 Internal Server Error
-  console.error('[Unhandled Exception]:', err);
+  // Fallback to 500 Internal Server Error with production masking
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('[Unhandled Exception]:', err);
+  }
+
   return res.status(500).json({
     success: false,
     error: {
-      message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+      message: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Unknown error occurred'),
       code: 'INTERNAL_SERVER_ERROR'
     }
   });

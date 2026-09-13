@@ -7,6 +7,8 @@ import { executeRouter } from './executeRoutes';
 import { aiRouter } from './aiRoutes';
 import { ragRouter } from './ragRoutes';
 
+import { computeRateLimiter } from '../middlewares/rateLimiter';
+
 const router = Router();
 
 // API Health Check
@@ -28,8 +30,8 @@ router.get('/health', async (_req, res) => {
 // Mount Resource Routes
 router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
-router.use('/execute', executeRouter);
-router.use('/ai', aiRouter);
-router.use('/rag', ragRouter);
+router.use('/execute', computeRateLimiter, executeRouter);
+router.use('/ai', computeRateLimiter, aiRouter);
+router.use('/rag', computeRateLimiter, ragRouter);
 
 export default router;
