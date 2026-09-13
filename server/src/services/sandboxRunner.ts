@@ -348,11 +348,12 @@ function getFileAndCmd(language: string): { filename: string; command: string[] 
   switch (lang) {
     case 'python':
     case 'py': {
-      // In Windows, python is often 'python' instead of 'python3'
+      // In Windows, python is often 'python' instead of 'python3'.
+      // -u flag forces unbuffered binary stdout and stderr
       const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
       return {
         filename: 'main.py',
-        command: [pythonCmd, 'main.py']
+        command: [pythonCmd, '-u', 'main.py']
       };
     }
     case 'javascript':
