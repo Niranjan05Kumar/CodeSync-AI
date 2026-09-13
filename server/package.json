@@ -13,7 +13,8 @@
     "test:api": "tsx src/test-api.ts",
     "test:sockets": "tsx src/test-sockets.ts",
     "test:exec": "tsx src/test-execution.ts",
-    "test:ai": "tsx src/test-ai.ts"
+    "test:ai": "tsx src/test-ai.ts",
+    "test:rag": "tsx src/test-rag.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

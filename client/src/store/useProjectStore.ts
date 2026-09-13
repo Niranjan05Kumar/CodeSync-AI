@@ -37,6 +37,7 @@ interface ProjectState {
   refreshTree: () => Promise<void>;
 
   openFile: (file: { id: string; name: string; path: string; language: string }) => Promise<void>;
+  openFileByPath: (filePath: string) => Promise<void>;
   closeTab: (fileId: string) => void;
   setActiveTabId: (fileId: string) => Promise<void>;
 
@@ -197,6 +198,32 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       });
     } catch (err) {
       console.error('[ProjectStore] Failed to fetch file content:', err);
+    }
+  },
+
+  openFileByPath: async (filePath: string) => {
+    const { fileTree, openFile } = get();
+    const findNode = (nodes: FileTreeNode[]): FileTreeNode | null => {
+      for (const node of nodes) {
+        if (!node.isDirectory && (node.path === filePath || node.name === filePath)) {
+          return node;
+        }
+        if (node.children) {
+          const found = findNode(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const target = findNode(fileTree);
+    if (target) {
+      await openFile({
+        id: target.id,
+        name: target.name,
+        path: target.path,
+        language: target.language || 'plaintext'
+      });
     }
   },
 

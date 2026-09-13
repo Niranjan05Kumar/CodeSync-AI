@@ -5,6 +5,7 @@ import { checkDatabaseHealth } from '../db/pool';
 
 import { executeRouter } from './executeRoutes';
 import { aiRouter } from './aiRoutes';
+import { ragRouter } from './ragRoutes';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
 router.use('/execute', executeRouter);
 router.use('/ai', aiRouter);
+router.use('/rag', ragRouter);
 
 export default router;

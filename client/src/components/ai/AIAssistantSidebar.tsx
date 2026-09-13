@@ -12,13 +12,16 @@ import {
   CheckCircle2,
   FileCode,
   AlertOctagon,
-  Copy,
-  Check
+  Database,
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
 import { aiApi, ReviewResult, DebugResult, ChatMessage } from '../../api/aiApi';
+import { ragApi, RAGQueryResult, RAGSyncResult } from '../../api/ragApi';
 import { ReviewCard } from './ReviewCard';
+import { RAGCitations } from './RAGCitations';
 
 export const AIAssistantSidebar: React.FC = () => {
   const { isAiPanelOpen, setAiPanelOpen, aiPanelWidth } = useUIStore();
@@ -28,10 +31,11 @@ export const AIAssistantSidebar: React.FC = () => {
     activeTabId, 
     activeFileContent, 
     updateActiveContent,
+    openFileByPath,
     executionLogs 
   } = useProjectStore();
 
-  const [activeTab, setActiveTab] = useState<'chat' | 'review' | 'debug'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'review' | 'debug' | 'rag'>('chat');
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -56,8 +60,14 @@ export const AIAssistantSidebar: React.FC = () => {
   const [debugResult, setDebugResult] = useState<DebugResult | null>(null);
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugApiError, setDebugApiError] = useState<string | null>(null);
-  const [isCodeCopied, setIsCodeCopied] = useState(false);
-  const [isCodeApplied, setIsCodeApplied] = useState(false);
+
+  // Project RAG State
+  const [ragQueryInput, setRagQueryInput] = useState('');
+  const [ragResult, setRagResult] = useState<RAGQueryResult | null>(null);
+  const [isSearchingRAG, setIsSearchingRAG] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [ragError, setRagError] = useState<string | null>(null);
+  const [indexStats, setIndexStats] = useState<RAGSyncResult | null>(null);
 
   const currentTab = openTabs.find((t) => t.id === activeTabId);
 
@@ -80,7 +90,6 @@ export const AIAssistantSidebar: React.FC = () => {
     setInputPrompt('');
     setIsStreaming(true);
 
-    // Placeholder for streaming assistant response
     const assistantIndex = updatedMessages.length;
     setMessages([...updatedMessages, { role: 'assistant', content: '' }]);
 
@@ -160,7 +169,6 @@ export const AIAssistantSidebar: React.FC = () => {
 
   const handleApplyReviewFix = (suggestedFix: string) => {
     if (!suggestedFix) return;
-    // Replace current content or append suggested fix cleanly
     updateActiveContent(suggestedFix);
   };
 
@@ -201,19 +209,58 @@ export const AIAssistantSidebar: React.FC = () => {
     }
   };
 
-  const handleApplyDebugFix = (code: string) => {
-    updateActiveContent(code);
-    setIsCodeApplied(true);
-    setTimeout(() => setIsCodeApplied(false), 2000);
+  // ----------------------------------------------------
+  // Project RAG Handlers
+  // ----------------------------------------------------
+  const handleSyncVectors = async () => {
+    if (!currentProject) {
+      setRagError('Please select a project first.');
+      return;
+    }
+
+    setIsIndexing(true);
+    setRagError(null);
+
+    try {
+      const res = await ragApi.syncProjectVectors(currentProject.id);
+      setIndexStats(res);
+    } catch (err: any) {
+      setRagError(err.message || 'Failed to index project vectors');
+    } finally {
+      setIsIndexing(false);
+    }
   };
 
-  const handleCopyDebugFix = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setIsCodeCopied(true);
-    setTimeout(() => setIsCodeCopied(false), 2000);
+  const handleSearchRAG = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!currentProject) {
+      setRagError('Please select a project first.');
+      return;
+    }
+    if (!ragQueryInput.trim()) return;
+
+    setIsSearchingRAG(true);
+    setRagError(null);
+
+    try {
+      const res = await ragApi.queryRAG({
+        projectId: currentProject.id,
+        query: ragQueryInput.trim(),
+        limit: 5,
+        minSimilarity: 0.50
+      });
+      setRagResult(res);
+    } catch (err: any) {
+      setRagError(err.message || 'Failed to query project context');
+    } finally {
+      setIsSearchingRAG(false);
+    }
   };
 
-  // Filtered issues
+  const handleOpenCitation = async (filePath: string) => {
+    await openFileByPath(filePath);
+  };
+
   const filteredIssues = reviewResult?.issues.filter((issue) => {
     if (severityFilter === 'ALL') return true;
     return issue.severity.toUpperCase() === severityFilter;
@@ -240,10 +287,10 @@ export const AIAssistantSidebar: React.FC = () => {
       </div>
 
       {/* Mode Navigation Tabs */}
-      <div className="h-8 px-2 flex items-center border-b border-ide-border bg-[#1e1e1e] shrink-0 text-ide-xs select-none">
+      <div className="h-8 px-1 flex items-center border-b border-ide-border bg-[#1e1e1e] shrink-0 text-ide-xs select-none">
         <button
           onClick={() => setActiveTab('chat')}
-          className={`h-full px-3 font-medium uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-colors ${
+          className={`h-full px-2.5 font-medium uppercase tracking-wider flex items-center gap-1 border-b-2 transition-colors ${
             activeTab === 'chat'
               ? 'border-ide-blue text-white font-semibold'
               : 'border-transparent text-ide-muted hover:text-white'
@@ -254,7 +301,7 @@ export const AIAssistantSidebar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('review')}
-          className={`h-full px-3 font-medium uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-colors ${
+          className={`h-full px-2.5 font-medium uppercase tracking-wider flex items-center gap-1 border-b-2 transition-colors ${
             activeTab === 'review'
               ? 'border-ide-blue text-white font-semibold'
               : 'border-transparent text-ide-muted hover:text-white'
@@ -270,7 +317,7 @@ export const AIAssistantSidebar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('debug')}
-          className={`h-full px-3 font-medium uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-colors ${
+          className={`h-full px-2.5 font-medium uppercase tracking-wider flex items-center gap-1 border-b-2 transition-colors ${
             activeTab === 'debug'
               ? 'border-ide-blue text-white font-semibold'
               : 'border-transparent text-ide-muted hover:text-white'
@@ -279,10 +326,21 @@ export const AIAssistantSidebar: React.FC = () => {
           <Bug className="w-3 h-3" />
           <span>Debug</span>
         </button>
+        <button
+          onClick={() => setActiveTab('rag')}
+          className={`h-full px-2.5 font-medium uppercase tracking-wider flex items-center gap-1 border-b-2 transition-colors ${
+            activeTab === 'rag'
+              ? 'border-ide-blue text-white font-semibold'
+              : 'border-transparent text-ide-muted hover:text-white'
+          }`}
+        >
+          <Database className="w-3 h-3 text-ide-cyan" />
+          <span>RAG</span>
+        </button>
       </div>
 
       {/* Active File Context Pill */}
-      {currentTab && (
+      {currentTab && activeTab !== 'rag' && (
         <div className="px-3 py-1.5 bg-[#1b1b1c] border-b border-ide-border/60 flex items-center justify-between text-ide-xs text-ide-muted shrink-0">
           <div className="flex items-center gap-1.5 truncate">
             <FileCode className="w-3 h-3 text-ide-blue shrink-0" />
@@ -300,7 +358,6 @@ export const AIAssistantSidebar: React.FC = () => {
       {/* ==================================================== */}
       {activeTab === 'chat' && (
         <div className="flex-1 flex flex-col min-h-0 bg-[#1e1e1e]">
-          {/* Quick Action Chips */}
           <div className="p-2 border-b border-ide-border/40 bg-[#1e1e1e] flex flex-wrap gap-1.5 shrink-0">
             <button
               onClick={() => handleSendChat('Explain step-by-step how this active file works and its overall architecture.')}
@@ -328,7 +385,6 @@ export const AIAssistantSidebar: React.FC = () => {
             </button>
           </div>
 
-          {/* Messages Stream */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3.5 select-text">
             {messages.map((msg, index) => (
               <div
@@ -356,7 +412,6 @@ export const AIAssistantSidebar: React.FC = () => {
             <div ref={chatBottomRef} />
           </div>
 
-          {/* Chat Input Bar */}
           <div className="p-2 border-t border-ide-border bg-[#181818] shrink-0">
             {isStreaming && (
               <div className="mb-2 flex items-center justify-between">
@@ -404,7 +459,6 @@ export const AIAssistantSidebar: React.FC = () => {
       {/* ==================================================== */}
       {activeTab === 'review' && (
         <div className="flex-1 flex flex-col min-h-0 bg-[#1e1e1e] p-3 space-y-3 overflow-y-auto">
-          {/* Action Header */}
           <div className="flex items-center justify-between gap-2 shrink-0">
             <button
               onClick={handleRunReview}
@@ -440,16 +494,13 @@ export const AIAssistantSidebar: React.FC = () => {
             </div>
           )}
 
-          {/* Review Results */}
           {reviewResult && (
             <div className="space-y-3 select-text">
-              {/* Summary Banner */}
               <div className="p-2.5 bg-[#252526] border border-ide-border rounded text-xs space-y-1">
                 <div className="font-semibold text-white">Review Summary</div>
                 <p className="text-ide-dim leading-relaxed">{reviewResult.summary}</p>
               </div>
 
-              {/* Severity Filter Tabs */}
               <div className="flex items-center gap-1 flex-wrap text-[10px]">
                 {(['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((sev) => {
                   const count = sev === 'ALL'
@@ -472,7 +523,6 @@ export const AIAssistantSidebar: React.FC = () => {
                 })}
               </div>
 
-              {/* Issue Cards */}
               <div className="space-y-2">
                 {filteredIssues.map((issue, idx) => (
                   <ReviewCard
@@ -509,7 +559,6 @@ export const AIAssistantSidebar: React.FC = () => {
       {/* ==================================================== */}
       {activeTab === 'debug' && (
         <div className="flex-1 flex flex-col min-h-0 bg-[#1e1e1e] p-3 space-y-3 overflow-y-auto">
-          {/* Error Message Input */}
           <div className="space-y-1.5 shrink-0">
             <div className="flex items-center justify-between text-xs text-ide-muted">
               <span className="font-medium text-white flex items-center gap-1">
@@ -532,7 +581,6 @@ export const AIAssistantSidebar: React.FC = () => {
             />
           </div>
 
-          {/* Action Button */}
           <button
             onClick={handleRunDebug}
             disabled={isDebugging || !activeFileContent}
@@ -557,10 +605,8 @@ export const AIAssistantSidebar: React.FC = () => {
             </div>
           )}
 
-          {/* Debug Results */}
           {debugResult && (
             <div className="space-y-3 select-text text-xs">
-              {/* Root Cause Card */}
               <div className="p-3 bg-[#252526] border-l-4 border-l-ide-red border border-ide-border rounded space-y-1">
                 <div className="font-semibold text-ide-red uppercase text-[10px] tracking-wider">
                   Root Cause
@@ -571,7 +617,6 @@ export const AIAssistantSidebar: React.FC = () => {
                 </p>
               </div>
 
-              {/* Action Steps */}
               {debugResult.steps && debugResult.steps.length > 0 && (
                 <div className="p-2.5 bg-[#252526] border border-ide-border rounded space-y-1.5">
                   <div className="font-semibold text-white text-[11px]">Resolution Steps:</div>
@@ -583,7 +628,6 @@ export const AIAssistantSidebar: React.FC = () => {
                 </div>
               )}
 
-              {/* Fixed Code Solution */}
               {debugResult.fixedCode && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-ide-muted text-[11px]">
@@ -591,38 +635,11 @@ export const AIAssistantSidebar: React.FC = () => {
                       <Code2 className="w-3 h-3 text-ide-green" />
                       <span>Suggested Solution</span>
                     </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleCopyDebugFix(debugResult.fixedCode)}
-                        className="p-1 hover:text-white rounded hover:bg-[#2d2d2d] transition-colors"
-                        title="Copy Code"
-                      >
-                        {isCodeCopied ? <Check className="w-3 h-3 text-ide-green" /> : <Copy className="w-3 h-3" />}
-                      </button>
-                    </div>
                   </div>
 
                   <pre className="p-2.5 bg-[#1b1b1c] border border-ide-border rounded font-mono text-[11px] text-ide-text overflow-x-auto whitespace-pre-wrap select-all">
                     {debugResult.fixedCode}
                   </pre>
-
-                  <button
-                    onClick={() => handleApplyDebugFix(debugResult.fixedCode)}
-                    className={`w-full py-1 px-3 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                      isCodeApplied
-                        ? 'bg-ide-green text-black font-semibold'
-                        : 'bg-ide-blue hover:bg-ide-blueHover text-white shadow-xs'
-                    }`}
-                  >
-                    {isCodeApplied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Applied to Active File</span>
-                      </>
-                    ) : (
-                      <span>Apply Fix to File</span>
-                    )}
-                  </button>
                 </div>
               )}
             </div>
@@ -634,6 +651,113 @@ export const AIAssistantSidebar: React.FC = () => {
               <p className="font-medium text-white">AI Error Debugger</p>
               <p className="max-w-[240px] mx-auto leading-relaxed">
                 Paste any runtime exception or stack trace from execution output to diagnose root causes and get 1-click patches.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* TAB 4: PROJECT RAG (pgvector Search)                */}
+      {/* ==================================================== */}
+      {activeTab === 'rag' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-[#1e1e1e] p-3 space-y-3 overflow-y-auto">
+          {/* Indexing Status & Sync Banner */}
+          <div className="p-2.5 bg-[#252526] border border-ide-border rounded text-xs space-y-2 shrink-0">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-white flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-ide-cyan" />
+                <span>pgvector HNSW Index</span>
+              </span>
+              <button
+                onClick={handleSyncVectors}
+                disabled={isIndexing || !currentProject}
+                className="px-2 py-1 bg-ide-elevated hover:bg-[#2d2d2d] border border-ide-border rounded text-[11px] text-ide-text hover:text-white flex items-center gap-1 transition-colors disabled:opacity-50"
+                title="Index/Re-index Project Files"
+              >
+                {isIndexing ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-ide-blue" />
+                ) : (
+                  <RefreshCw className="w-3 h-3 text-ide-blue" />
+                )}
+                <span>{isIndexing ? 'Indexing...' : 'Index Project'}</span>
+              </button>
+            </div>
+
+            <p className="text-ide-dim text-[11px] leading-relaxed">
+              {indexStats
+                ? `Successfully indexed ${indexStats.indexedFiles} files into ${indexStats.totalChunks} vector chunks.`
+                : 'Index all source files into PostgreSQL pgvector to enable sub-10ms semantic code search and grounded answers.'}
+            </p>
+          </div>
+
+          {/* Search Input */}
+          <form onSubmit={handleSearchRAG} className="space-y-2 shrink-0">
+            <div className="relative">
+              <input
+                type="text"
+                value={ragQueryInput}
+                onChange={(e) => setRagQueryInput(e.target.value)}
+                placeholder="Ask about architecture, functions, database pools..."
+                disabled={isSearchingRAG || !currentProject}
+                className="w-full pl-8 pr-3 py-1.5 bg-[#252526] border border-ide-border rounded text-white text-xs outline-none focus:border-ide-blue placeholder:text-ide-muted"
+              />
+              <Search className="w-3.5 h-3.5 text-ide-muted absolute left-2.5 top-2.5" />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSearchingRAG || !ragQueryInput.trim() || !currentProject}
+              className="w-full py-1.5 px-3 bg-ide-blue hover:bg-ide-blueHover disabled:opacity-50 text-white rounded font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+            >
+              {isSearchingRAG ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Searching Codebase...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Query Project Knowledge</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {ragError && (
+            <div className="p-2.5 bg-[#4a1c1c] border border-ide-red/50 text-ide-red text-xs rounded">
+              {ragError}
+            </div>
+          )}
+
+          {/* RAG Answer & Citations */}
+          {ragResult && (
+            <div className="space-y-3 select-text text-xs">
+              {/* Answer Card */}
+              <div className="p-3 bg-[#252526] border border-ide-border rounded space-y-1.5">
+                <div className="font-semibold text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-ide-amber" />
+                  <span>Grounded Answer</span>
+                </div>
+                <div className="text-ide-text text-[11px] leading-relaxed whitespace-pre-wrap">
+                  {ragResult.answer}
+                </div>
+              </div>
+
+              {/* Citations Accordion */}
+              <RAGCitations
+                sources={ragResult.citedSources}
+                onOpenCitation={handleOpenCitation}
+              />
+            </div>
+          )}
+
+          {!ragResult && !isSearchingRAG && (
+            <div className="py-10 text-center text-ide-muted text-xs space-y-2">
+              <Database className="w-10 h-10 text-ide-cyan/60 mx-auto" />
+              <p className="font-medium text-white">Project-Aware RAG</p>
+              <p className="max-w-[240px] mx-auto leading-relaxed">
+                Queries are embedded into vectors and matched against your entire codebase using PostgreSQL HNSW cosine similarity.
               </p>
             </div>
           )}
