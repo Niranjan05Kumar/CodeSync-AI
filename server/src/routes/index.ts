@@ -4,6 +4,7 @@ import projectRoutes from './projectRoutes';
 import { checkDatabaseHealth } from '../db/pool';
 
 import { executeRouter } from './executeRoutes';
+import { aiRouter } from './aiRoutes';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.get('/health', async (_req, res) => {
 router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
 router.use('/execute', executeRouter);
+router.use('/ai', aiRouter);
 
 export default router;

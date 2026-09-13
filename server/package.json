@@ -12,7 +12,8 @@
     "start": "node dist/index.js",
     "test:api": "tsx src/test-api.ts",
     "test:sockets": "tsx src/test-sockets.ts",
-    "test:exec": "tsx src/test-execution.ts"
+    "test:exec": "tsx src/test-execution.ts",
+    "test:ai": "tsx src/test-ai.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -20,6 +21,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "openai": "^7.15.0",
     "pg": "^8.12.0",
     "socket.io": "^4.8.3",
     "zod": "^3.23.8"
