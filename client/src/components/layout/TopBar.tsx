@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Code2, 
   Play, 
@@ -7,7 +7,8 @@ import {
   ChevronDown, 
   Plus, 
   User as UserIcon,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -22,10 +23,29 @@ export const TopBar: React.FC = () => {
     toggleAiPanel 
   } = useUIStore();
 
-  const { currentProject, projects, selectProject, collaborators } = useProjectStore();
+  const { 
+    currentProject, 
+    projects, 
+    selectProject, 
+    collaborators,
+    runActiveFile,
+    isExecuting,
+    activeTabId
+  } = useProjectStore();
   const { user, isAuthenticated, logout } = useAuthStore();
 
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = React.useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runActiveFile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [runActiveFile]);
 
   return (
     <header className="h-10 bg-ide-sidebar border-b border-ide-border px-3 flex items-center justify-between text-ide-base select-none z-30">
@@ -120,14 +140,23 @@ export const TopBar: React.FC = () => {
       {/* Center Section: Primary Run CTA */}
       <div className="flex items-center">
         <button
-          onClick={() => {
-            console.log('[Run] Triggered execution of active file');
-          }}
-          className="h-7 px-3 bg-ide-blue hover:bg-ide-blueHover text-white font-medium flex items-center gap-1.5 rounded transition-colors text-ide-sm shadow-sm"
-          title="Run Active File (Ctrl + Enter)"
+          onClick={() => runActiveFile()}
+          disabled={isExecuting || !activeTabId}
+          className={`h-7 px-3 text-white font-medium flex items-center gap-1.5 rounded transition-all text-ide-sm shadow-sm ${
+            isExecuting
+              ? 'bg-ide-blue/60 cursor-not-allowed opacity-80'
+              : !activeTabId
+              ? 'bg-[#333333] text-ide-muted cursor-not-allowed'
+              : 'bg-ide-blue hover:bg-ide-blueHover cursor-pointer'
+          }`}
+          title={activeTabId ? 'Run Active File (Ctrl + Enter)' : 'Open a file to run'}
         >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span>Run</span>
+          {isExecuting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Play className="w-3.5 h-3.5 fill-current" />
+          )}
+          <span>{isExecuting ? 'Running...' : 'Run'}</span>
         </button>
       </div>
 

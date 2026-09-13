@@ -11,7 +11,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test:api": "tsx src/test-api.ts",
-    "test:sockets": "tsx src/test-sockets.ts"
+    "test:sockets": "tsx src/test-sockets.ts",
+    "test:exec": "tsx src/test-execution.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

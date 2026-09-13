@@ -3,6 +3,8 @@ import authRoutes from './authRoutes';
 import projectRoutes from './projectRoutes';
 import { checkDatabaseHealth } from '../db/pool';
 
+import { executeRouter } from './executeRoutes';
+
 const router = Router();
 
 // API Health Check
@@ -24,5 +26,6 @@ router.get('/health', async (_req, res) => {
 // Mount Resource Routes
 router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
+router.use('/execute', executeRouter);
 
 export default router;

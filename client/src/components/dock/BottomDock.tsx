@@ -6,7 +6,8 @@ import {
   Send, 
   CheckCircle2, 
   Maximize2, 
-  Minimize2
+  Minimize2,
+  Loader2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -23,15 +24,15 @@ export const BottomDock: React.FC = () => {
   } = useUIStore();
 
   const { user } = useAuthStore();
-  const { chatMessages } = useProjectStore();
+  const { 
+    chatMessages,
+    executionLogs,
+    isExecuting,
+    clearExecutionOutput
+  } = useProjectStore();
   const { broadcastChatMessage } = useSocketSync();
 
   const [isMaximized, setIsMaximized] = useState(false);
-  const [outputLogs, setOutputLogs] = useState<string[]>([
-    '[system] CodeSync Cloud Execution Engine initialized.',
-    '[system] Docker sandbox runner connected: alpine-sandbox (memory limit: 128MB, cpu: 0.5)',
-    '[system] Project workspace mounted at /workspace'
-  ]);
 
   // Terminal state
   const [terminalHistory, setTerminalHistory] = useState<string[]>([
@@ -52,7 +53,7 @@ export const BottomDock: React.FC = () => {
   if (!isBottomPanelOpen) return null;
 
   const handleClear = () => {
-    if (activeBottomTab === 'output') setOutputLogs([]);
+    if (activeBottomTab === 'output') clearExecutionOutput();
     if (activeBottomTab === 'terminal') setTerminalHistory([]);
   };
 
@@ -192,16 +193,47 @@ export const BottomDock: React.FC = () => {
       <div className="flex-1 overflow-hidden bg-[#181818] p-2 font-mono text-ide-sm text-ide-text">
         {/* OUTPUT TAB */}
         {activeBottomTab === 'output' && (
-          <div className="h-full overflow-y-auto space-y-1 select-text">
-            {outputLogs.map((log, idx) => (
-              <div key={idx} className="leading-relaxed text-ide-dim text-ide-xs">
-                {log}
+          <div className="h-full overflow-y-auto space-y-1.5 select-text p-1 font-mono text-ide-xs">
+            {executionLogs.map((log) => {
+              let textClass = 'text-ide-dim';
+
+              if (log.type === 'stdout') {
+                textClass = 'text-white whitespace-pre-wrap';
+              } else if (log.type === 'stderr') {
+                textClass = 'text-ide-red whitespace-pre-wrap';
+              } else if (log.type === 'success') {
+                textClass = 'text-ide-green font-medium';
+              } else if (log.type === 'error') {
+                textClass = 'text-ide-red font-medium';
+              } else if (log.type === 'system') {
+                textClass = 'text-ide-blue font-medium';
+              }
+
+              return (
+                <div key={log.id} className="leading-relaxed flex items-start gap-2">
+                  <span className="text-[10px] text-ide-muted select-none shrink-0 font-sans mt-0.5">
+                    {log.timestamp}
+                  </span>
+                  <div className={`flex-1 ${textClass}`}>
+                    {log.text}
+                  </div>
+                </div>
+              );
+            })}
+
+            {isExecuting && (
+              <div className="pt-2 text-ide-amber text-ide-xs flex items-center gap-2 animate-pulse">
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                <span>Running code execution in isolated sandbox...</span>
               </div>
-            ))}
-            <div className="pt-2 text-ide-dim text-ide-xs flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-ide-green" />
-              <span>Ready for code execution (Press Ctrl+Enter to run).</span>
-            </div>
+            )}
+
+            {!isExecuting && (
+              <div className="pt-2 text-ide-dim text-ide-xs flex items-center gap-1.5 border-t border-ide-border/20 mt-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-ide-green shrink-0" />
+                <span>Ready for code execution (Press Ctrl+Enter or click Run).</span>
+              </div>
+            )}
           </div>
         )}
 

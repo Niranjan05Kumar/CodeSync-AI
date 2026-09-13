@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { Project, FileTreeNode, EditorTab, Collaborator, ChatMessage } from '../types';
 import { projectApi } from '../api/projectApi';
 import { fileApi } from '../api/fileApi';
+import { executionApi, ExecutionResult } from '../api/executionApi';
+import { useUIStore } from './useUIStore';
+
+export interface ExecutionLogItem {
+  id: string;
+  type: 'system' | 'stdout' | 'stderr' | 'success' | 'error';
+  text: string;
+  timestamp: string;
+}
 
 interface ProjectState {
   currentProject: Project | null;
@@ -15,6 +24,13 @@ interface ProjectState {
   isTreeLoading: boolean;
   collaborators: Collaborator[];
   chatMessages: ChatMessage[];
+
+  // Code execution state
+  isExecuting: boolean;
+  executionResult: ExecutionResult | null;
+  executionLogs: ExecutionLogItem[];
+  runActiveFile: () => Promise<void>;
+  clearExecutionOutput: () => void;
 
   fetchProjects: () => Promise<void>;
   selectProject: (project: Project) => Promise<void>;
@@ -47,6 +63,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   isTreeLoading: false,
   collaborators: [],
   chatMessages: [],
+
+  // Execution initial state
+  isExecuting: false,
+  executionResult: null,
+  executionLogs: [
+    {
+      id: 'init-1',
+      type: 'system',
+      text: 'CodeSync Sandboxed Execution Engine ready.',
+      timestamp: new Date().toLocaleTimeString()
+    }
+  ],
 
   setCollaborators: (collaborators) => set({ collaborators }),
 
@@ -239,6 +267,149 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       console.log(`[ProjectStore] File saved (version ${res.file.version})`);
     } catch (err) {
       console.error('[ProjectStore] Save file failed:', err);
+    }
+  },
+
+  clearExecutionOutput: () => {
+    set({
+      executionLogs: [],
+      executionResult: null
+    });
+  },
+
+  runActiveFile: async () => {
+    const { currentProject, openTabs, activeTabId, activeFileContent, isExecuting } = get();
+    if (isExecuting) return;
+
+    // Switch BottomDock to OUTPUT tab
+    useUIStore.getState().setActiveBottomTab('output');
+
+    if (!currentProject) {
+      set((s) => ({
+        executionLogs: [
+          ...s.executionLogs,
+          {
+            id: String(Date.now()),
+            type: 'error',
+            text: 'No active project selected to run.',
+            timestamp: new Date().toLocaleTimeString()
+          }
+        ]
+      }));
+      return;
+    }
+
+    const activeTab = openTabs.find((t) => t.id === activeTabId);
+    if (!activeTab) {
+      set((s) => ({
+        executionLogs: [
+          ...s.executionLogs,
+          {
+            id: String(Date.now()),
+            type: 'error',
+            text: 'No file is open in editor to run.',
+            timestamp: new Date().toLocaleTimeString()
+          }
+        ]
+      }));
+      return;
+    }
+
+    // Detect runtime language from file extension or tab language
+    let language = activeTab.language || 'javascript';
+    const lowerName = activeTab.name.toLowerCase();
+    if (lowerName.endsWith('.py')) language = 'python';
+    else if (lowerName.endsWith('.js') || lowerName.endsWith('.mjs')) language = 'javascript';
+    else if (lowerName.endsWith('.ts')) language = 'typescript';
+    else if (lowerName.endsWith('.cpp') || lowerName.endsWith('.c')) language = 'cpp';
+
+    // Save active file before execution
+    await get().saveActiveFile();
+
+    const startTimestamp = new Date().toLocaleTimeString();
+    set((s) => ({
+      isExecuting: true,
+      executionResult: null,
+      executionLogs: [
+        ...s.executionLogs,
+        {
+          id: `start-${Date.now()}`,
+          type: 'system',
+          text: `[Run] Executing ${activeTab.name} (${language}) in sandbox...`,
+          timestamp: startTimestamp
+        }
+      ]
+    }));
+
+    try {
+      const res = await executionApi.execute({
+        projectId: currentProject.id,
+        language,
+        code: activeFileContent
+      });
+
+      const result = res.data;
+      const newItems: ExecutionLogItem[] = [];
+
+      if (result.stdout) {
+        newItems.push({
+          id: `out-${Date.now()}`,
+          type: 'stdout',
+          text: result.stdout,
+          timestamp: new Date().toLocaleTimeString()
+        });
+      }
+
+      if (result.stderr) {
+        newItems.push({
+          id: `err-${Date.now()}`,
+          type: 'stderr',
+          text: result.stderr,
+          timestamp: new Date().toLocaleTimeString()
+        });
+      }
+
+      if (result.status === 'timeout') {
+        newItems.push({
+          id: `status-${Date.now()}`,
+          type: 'error',
+          text: `[Timeout] Process exceeded wall-clock timeout limit of 5000ms (SIGKILL enforced, exit code 137).`,
+          timestamp: new Date().toLocaleTimeString()
+        });
+      } else if (result.exitCode === 0) {
+        newItems.push({
+          id: `status-${Date.now()}`,
+          type: 'success',
+          text: `[Completed] Finished with exit code 0 in ${result.executionTimeMs}ms.`,
+          timestamp: new Date().toLocaleTimeString()
+        });
+      } else {
+        newItems.push({
+          id: `status-${Date.now()}`,
+          type: 'error',
+          text: `[Failed] Process exited with code ${result.exitCode} in ${result.executionTimeMs}ms.`,
+          timestamp: new Date().toLocaleTimeString()
+        });
+      }
+
+      set((s) => ({
+        isExecuting: false,
+        executionResult: result,
+        executionLogs: [...s.executionLogs, ...newItems]
+      }));
+    } catch (err: any) {
+      set((s) => ({
+        isExecuting: false,
+        executionLogs: [
+          ...s.executionLogs,
+          {
+            id: `err-${Date.now()}`,
+            type: 'error',
+            text: `Execution failed: ${err.message || 'Unknown execution error'}`,
+            timestamp: new Date().toLocaleTimeString()
+          }
+        ]
+      }));
     }
   }
 }));

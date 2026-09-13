@@ -1,0 +1,19 @@
+FROM alpine:3.19
+
+# Install minimal compilers and runtimes per FINAL_TECHNICAL_REPORT.md Section 10.1
+RUN apk add --no-cache \
+    python3 \
+    nodejs \
+    g++ \
+    gcc \
+    openjdk17-jre-headless \
+    bash
+
+# Create non-root unprivileged user (UID 10001) for strict sandbox isolation
+RUN addgroup -g 10001 sandboxgroup && \
+    adduser -u 10001 -G sandboxgroup -D -s /bin/false sandboxuser
+
+WORKDIR /sandbox
+
+# Restrict permissions to unprivileged sandboxuser
+USER sandboxuser
