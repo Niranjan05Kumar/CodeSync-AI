@@ -22,6 +22,7 @@ import { aiApi, ReviewResult, DebugResult, ChatMessage } from '../../api/aiApi';
 import { ragApi, RAGQueryResult, RAGSyncResult } from '../../api/ragApi';
 import { ReviewCard } from './ReviewCard';
 import { RAGCitations } from './RAGCitations';
+import { ChatMessageItem } from './ChatMessageItem';
 
 export const AIAssistantSidebar: React.FC = () => {
   const { isAiPanelOpen, setAiPanelOpen, aiPanelWidth } = useUIStore();
@@ -137,6 +138,11 @@ export const AIAssistantSidebar: React.FC = () => {
       abortChatRef.current = null;
       setIsStreaming(false);
     }
+  };
+
+  const handleApplyCodeToEditor = (code: string) => {
+    if (!code) return;
+    updateActiveContent(code);
   };
 
   // ----------------------------------------------------
@@ -387,27 +393,13 @@ export const AIAssistantSidebar: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3.5 select-text">
             {messages.map((msg, index) => (
-              <div
+              <ChatMessageItem
                 key={index}
-                className={`flex flex-col ${
-                  msg.role === 'user' ? 'items-end' : 'items-start'
-                }`}
-              >
-                <div
-                  className={`max-w-[92%] rounded-lg p-2.5 text-ide-sm leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-ide-blue text-white rounded-br-xs'
-                      : 'bg-[#252526] text-ide-text border border-ide-border rounded-bl-xs'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap font-sans text-xs">
-                    {msg.content}
-                    {isStreaming && index === messages.length - 1 && (
-                      <span className="inline-block w-1.5 h-3 ml-1 bg-ide-blue animate-pulse align-middle" />
-                    )}
-                  </div>
-                </div>
-              </div>
+                role={msg.role}
+                content={msg.content}
+                isStreaming={isStreaming && index === messages.length - 1}
+                onApplyCode={activeTabId ? handleApplyCodeToEditor : undefined}
+              />
             ))}
             <div ref={chatBottomRef} />
           </div>
