@@ -236,3 +236,4 @@ When an agent completes a task or phase, it **MUST verify** the deliverable:
 3. **API Contracts**: Test endpoints using curl, Supertest, or Postman collections; ensure error paths return standardized `{ success: false, error: { message, code } }` with proper HTTP status codes (400, 401, 403, 404, 500).
 4. **Real-Time Testing**: Confirm that Socket.IO events match the payload signatures in Section 7 of [FINAL_TECHNICAL_REPORT.md](file:///d:/CodeEditor/FINAL_TECHNICAL_REPORT.md).
 5. **Sandbox Verification**: When testing code execution, run a loop script (`while True: pass`) to ensure the 5-second SIGKILL terminates the container without crashing the Node.js server.
+6. **Git Milestone & Push Discipline**: After completing and verifying each phase or significant feature update, the agent **MUST automatically stage, commit, and push** the tested code to `origin main` (`https://github.com/Niranjan05Kumar/CodeSync-AI.git`). Never commit `.env` or secret files.
