@@ -206,6 +206,53 @@ export function registerEditorSyncHandlers(io: Server, socket: Socket) {
     }
   });
 
+  // 5. Collaborative Chat Clear
+  socket.on('chat:clear', async (data: { projectId: string }) => {
+    try {
+      const { projectId } = data;
+      if (!projectId) return;
+
+      const roomId = `project:${projectId}`;
+
+      await query(
+        `DELETE FROM chat_messages WHERE project_id = $1`,
+        [projectId]
+      );
+
+      io.to(roomId).emit('chat:cleared', {
+        projectId,
+        clearedBy: user.username,
+        clearedAt: new Date().toISOString()
+      });
+    } catch (err: any) {
+      console.error(`[Socket chat:clear Error]:`, err);
+      socket.emit('error', { message: 'Failed to clear chat history' });
+    }
+  });
+
+  // 6. Collaborative Chat Delete Single Message
+  socket.on('chat:delete', async (data: { projectId: string; messageId: string }) => {
+    try {
+      const { projectId, messageId } = data;
+      if (!projectId || !messageId) return;
+
+      const roomId = `project:${projectId}`;
+
+      await query(
+        `DELETE FROM chat_messages WHERE id = $1 AND project_id = $2`,
+        [messageId, projectId]
+      );
+
+      io.to(roomId).emit('chat:deleted', {
+        projectId,
+        messageId
+      });
+    } catch (err: any) {
+      console.error(`[Socket chat:delete Error]:`, err);
+      socket.emit('error', { message: 'Failed to delete chat message' });
+    }
+  });
+
   // Helper to remove user from room
   const handleLeaveRoom = (projectId: string) => {
     const roomId = `project:${projectId}`;

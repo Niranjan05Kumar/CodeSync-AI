@@ -14,7 +14,8 @@ import {
   AlertOctagon,
   Database,
   Search,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -25,7 +26,7 @@ import { RAGCitations } from './RAGCitations';
 import { ChatMessageItem } from './ChatMessageItem';
 
 export const AIAssistantSidebar: React.FC = () => {
-  const { isAiPanelOpen, setAiPanelOpen, aiPanelWidth } = useUIStore();
+  const { isAiPanelOpen, setAiPanelOpen, aiPanelWidth, showToast } = useUIStore();
   const { 
     currentProject, 
     openTabs, 
@@ -143,6 +144,30 @@ export const AIAssistantSidebar: React.FC = () => {
   const handleApplyCodeToEditor = (code: string) => {
     if (!code) return;
     updateActiveContent(code);
+  };
+
+  const handleClearChat = () => {
+    if (messages.length <= 1 && !inputPrompt) return;
+
+    if (abortChatRef.current) {
+      abortChatRef.current();
+      abortChatRef.current = null;
+      setIsStreaming(false);
+    }
+
+    setMessages([
+      {
+        role: 'assistant',
+        content: 'Hello! I am your CodeSync AI pair programmer. Ask me anything about your project, or select a quick action below.'
+      }
+    ]);
+    setInputPrompt('');
+    showToast('AI conversation reset', 'info');
+  };
+
+  const handleDeleteMessage = (index: number) => {
+    setMessages((prev) => prev.filter((_, idx) => idx !== index));
+    showToast('Message deleted', 'info');
   };
 
   // ----------------------------------------------------
@@ -389,6 +414,14 @@ export const AIAssistantSidebar: React.FC = () => {
               <Sparkles className="w-3 h-3 text-ide-amber" />
               <span>Optimize</span>
             </button>
+            <button
+              onClick={handleClearChat}
+              title="Clear all messages and reset conversation"
+              className="ml-auto px-2 py-1 bg-[#252526] hover:bg-[#382626] text-ide-muted hover:text-ide-red text-[11px] rounded border border-ide-border hover:border-ide-red/40 flex items-center gap-1 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Clear</span>
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3.5 select-text">
@@ -399,6 +432,7 @@ export const AIAssistantSidebar: React.FC = () => {
                 content={msg.content}
                 isStreaming={isStreaming && index === messages.length - 1}
                 onApplyCode={activeTabId ? handleApplyCodeToEditor : undefined}
+                onDelete={() => handleDeleteMessage(index)}
               />
             ))}
             <div ref={chatBottomRef} />

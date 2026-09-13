@@ -5,7 +5,16 @@ import { useAuthStore } from '../store/useAuthStore';
 import { MonacoChange, ChatMessage } from '../types';
 
 export function useSocketSync() {
-  const { currentProject, setCollaborators, updateCollaboratorCursor, removeCollaborator, setChatMessages, addChatMessage } = useProjectStore();
+  const { 
+    currentProject, 
+    setCollaborators, 
+    updateCollaboratorCursor, 
+    removeCollaborator, 
+    setChatMessages, 
+    addChatMessage,
+    clearChatMessages,
+    deleteChatMessage
+  } = useProjectStore();
   const { accessToken, user } = useAuthStore();
 
   useEffect(() => {
@@ -82,11 +91,25 @@ export function useSocketSync() {
       addChatMessage(data);
     };
 
+    // 6. In-room chat cleared
+    const handleChatCleared = () => {
+      clearChatMessages();
+    };
+
+    // 7. In-room single message deleted
+    const handleChatDeleted = (data: { messageId: string }) => {
+      if (data?.messageId) {
+        deleteChatMessage(data.messageId);
+      }
+    };
+
     socket.on('room:joined', handleRoomJoined);
     socket.on('room:user_joined', handleUserJoined);
     socket.on('room:user_left', handleUserLeft);
     socket.on('cursor:update', handleCursorUpdate);
     socket.on('chat:message', handleChatMessage);
+    socket.on('chat:cleared', handleChatCleared);
+    socket.on('chat:deleted', handleChatDeleted);
 
     return () => {
       socket.off('room:joined', handleRoomJoined);
@@ -94,8 +117,10 @@ export function useSocketSync() {
       socket.off('room:user_left', handleUserLeft);
       socket.off('cursor:update', handleCursorUpdate);
       socket.off('chat:message', handleChatMessage);
+      socket.off('chat:cleared', handleChatCleared);
+      socket.off('chat:deleted', handleChatDeleted);
     };
-  }, [currentProject?.id, accessToken, user?.id, setCollaborators, updateCollaboratorCursor, removeCollaborator, setChatMessages, addChatMessage]);
+  }, [currentProject?.id, accessToken, user?.id, setCollaborators, updateCollaboratorCursor, removeCollaborator, setChatMessages, addChatMessage, clearChatMessages, deleteChatMessage]);
 
   // Broadcast cursor movement
   const broadcastCursorMove = useCallback((fileId: string, position: { lineNumber: number; column: number }) => {

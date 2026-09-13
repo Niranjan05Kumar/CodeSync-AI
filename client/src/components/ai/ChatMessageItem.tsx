@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Code2, Copy, Check, ArrowRight } from 'lucide-react';
+import { Code2, Copy, Check, ArrowRight, Trash2 } from 'lucide-react';
 
 interface ChatMessageItemProps {
   role: 'user' | 'assistant' | 'system';
   content: string;
   isStreaming?: boolean;
   onApplyCode?: (code: string) => void;
+  onDelete?: () => void;
 }
 
 interface Segment {
@@ -247,13 +248,23 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   role,
   content,
   isStreaming = false,
-  onApplyCode
+  onApplyCode,
+  onDelete
 }) => {
   if (role === 'user') {
     return (
-      <div className="flex flex-col items-end">
-        <div className="max-w-[88%] rounded-lg p-2.5 bg-ide-blue text-white rounded-br-xs text-xs leading-relaxed whitespace-pre-wrap select-text shadow-sm">
+      <div className="group flex flex-col items-end w-full">
+        <div className="relative max-w-[88%] rounded-lg p-2.5 bg-ide-blue text-white rounded-br-xs text-xs leading-relaxed whitespace-pre-wrap select-text shadow-sm">
           {content}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              title="Delete message"
+              className="opacity-0 group-hover:opacity-100 absolute -left-6 top-2 p-0.5 text-ide-dim hover:text-ide-red transition-opacity"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -262,8 +273,17 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   const segments = parseMessageSegments(content);
 
   return (
-    <div className="flex flex-col items-start w-full">
-      <div className="w-full rounded-lg p-3 bg-[#252526] text-ide-text border border-ide-border rounded-bl-xs select-text shadow-sm space-y-2">
+    <div className="group flex flex-col items-start w-full relative">
+      <div className="w-full rounded-lg p-3 bg-[#252526] text-ide-text border border-ide-border rounded-bl-xs select-text shadow-sm space-y-2 relative">
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            title="Delete response"
+            className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 text-ide-dim hover:text-ide-red rounded transition-opacity bg-[#202020] border border-ide-border z-10"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
         {segments.length === 0 ? (
           <div className="text-xs text-ide-muted italic">Thinking...</div>
         ) : (

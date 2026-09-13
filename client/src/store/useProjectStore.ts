@@ -51,6 +51,8 @@ interface ProjectState {
   removeCollaborator: (userId: string) => void;
   setChatMessages: (msgs: ChatMessage[]) => void;
   addChatMessage: (msg: ChatMessage) => void;
+  clearChatMessages: () => void;
+  deleteChatMessage: (messageId: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -119,6 +121,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addChatMessage: (msg) => set((s) => ({
     chatMessages: [...s.chatMessages, msg]
+  })),
+
+  clearChatMessages: () => set({ chatMessages: [] }),
+
+  deleteChatMessage: (messageId) => set((s) => ({
+    chatMessages: s.chatMessages.filter((m) => m.id !== messageId)
   })),
 
   fetchProjects: async () => {

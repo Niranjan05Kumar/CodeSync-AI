@@ -13,6 +13,7 @@ import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useSocketSync } from '../../hooks/useSocketSync';
+import { getSocket } from '../../sockets/socketClient';
 
 export const BottomDock: React.FC = () => {
   const { 
@@ -20,15 +21,20 @@ export const BottomDock: React.FC = () => {
     activeBottomTab, 
     setActiveBottomTab, 
     setBottomPanelOpen,
-    bottomPanelHeight
+    bottomPanelHeight,
+    showConfirm,
+    showToast
   } = useUIStore();
 
   const { user } = useAuthStore();
   const { 
+    currentProject,
     chatMessages,
     executionLogs,
     isExecuting,
-    clearExecutionOutput
+    clearExecutionOutput,
+    clearChatMessages,
+    deleteChatMessage
   } = useProjectStore();
   const { broadcastChatMessage } = useSocketSync();
 
@@ -52,9 +58,37 @@ export const BottomDock: React.FC = () => {
 
   if (!isBottomPanelOpen) return null;
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (activeBottomTab === 'output') clearExecutionOutput();
     if (activeBottomTab === 'terminal') setTerminalHistory([]);
+    if (activeBottomTab === 'chat') {
+      if (!currentProject) return;
+      if (chatMessages.length === 0) return;
+      const confirmed = await showConfirm({
+        title: 'Clear Collaborator Chat',
+        message: 'Are you sure you want to delete all chat messages in this project? This will permanently wipe chat history for all collaborators.',
+        confirmText: 'Clear Chat',
+        type: 'danger'
+      });
+      if (!confirmed) return;
+
+      const socket = getSocket();
+      if (socket.connected) {
+        socket.emit('chat:clear', { projectId: currentProject.id });
+      }
+      clearChatMessages();
+      showToast('Collaborator chat cleared', 'info');
+    }
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    if (!currentProject || !messageId) return;
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit('chat:delete', { projectId: currentProject.id, messageId });
+    }
+    deleteChatMessage(messageId);
+    showToast('Message deleted', 'info');
   };
 
   const handleTerminalSubmit = (e: React.FormEvent) => {
@@ -159,10 +193,10 @@ export const BottomDock: React.FC = () => {
 
         {/* Panel Actions */}
         <div className="flex items-center gap-1 text-ide-muted">
-          {(activeBottomTab === 'output' || activeBottomTab === 'terminal') && (
+          {(activeBottomTab === 'output' || activeBottomTab === 'terminal' || activeBottomTab === 'chat') && (
             <button
               onClick={handleClear}
-              title="Clear Console"
+              title={activeBottomTab === 'chat' ? 'Clear Collaborator Chat' : 'Clear Console'}
               className="p-1 hover:text-white hover:bg-[#2a2d2e] rounded transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -279,7 +313,7 @@ export const BottomDock: React.FC = () => {
                   : '';
 
                 return (
-                  <div key={msg.id} className="flex items-start gap-2.5">
+                  <div key={msg.id} className="group flex items-start gap-2.5 p-1 rounded hover:bg-[#252526]/50 transition-colors">
                     <div
                       style={{ backgroundColor: msg.color || '#4fc1ff' }}
                       className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-black uppercase shrink-0"
@@ -287,11 +321,20 @@ export const BottomDock: React.FC = () => {
                       {msg.username.substring(0, 2)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-ide-xs font-semibold text-white truncate">
-                          {msg.username}
-                        </span>
-                        {timeStr && <span className="text-[10px] text-ide-dim">{timeStr}</span>}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-ide-xs font-semibold text-white truncate">
+                            {msg.username}
+                          </span>
+                          {timeStr && <span className="text-[10px] text-ide-dim">{timeStr}</span>}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          title="Delete message"
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-ide-red text-ide-dim rounded transition-opacity"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                       <p className="text-ide-sm text-ide-text mt-0.5 leading-relaxed break-words">
                         {msg.message}
