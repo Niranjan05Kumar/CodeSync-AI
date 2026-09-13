@@ -318,6 +318,17 @@ async function runWithSubprocessFallback(
         status = 'failed';
       }
 
+      // Detect Windows missing Python app execution alias (code 9009 or Microsoft Store stub)
+      if (
+        stderr.includes('Python was not found') ||
+        (exitCode === 9009 && (language.toLowerCase() === 'python' || language.toLowerCase() === 'py'))
+      ) {
+        stderr += `\n[Environment Notice]: Python is not installed on your host machine.\n` +
+                  `Options to enable Python execution:\n` +
+                  `  • Run 'winget install Python.Python.3.11' in your terminal (or download from https://www.python.org/downloads/)\n` +
+                  `  • Or launch Docker Desktop to run all languages inside isolated Linux containers.\n`;
+      }
+
       try { fs.rmSync(hostScratchDir, { recursive: true, force: true }); } catch {}
 
       resolve({
