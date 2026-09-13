@@ -1,0 +1,56 @@
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  avatar_url?: string | null;
+  created_at?: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string | null;
+  owner_id: string;
+  owner_username?: string;
+  is_public: boolean;
+  role?: 'owner' | 'editor' | 'viewer';
+  member_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FileTreeNode {
+  id: string;
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  language?: string;
+  sizeBytes?: number;
+  version?: number;
+  updatedAt?: string;
+  children?: FileTreeNode[];
+}
+
+export interface EditorTab {
+  id: string;          // File ID
+  name: string;
+  path: string;
+  language: string;
+  isUnsaved?: boolean;
+}
+
+export interface Collaborator {
+  id: string;
+  username: string;
+  color: string;
+  cursorPosition?: {
+    lineNumber: number;
+    column: number;
+  };
+  activeFileId?: string;
+}

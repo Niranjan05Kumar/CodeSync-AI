@@ -1,0 +1,63 @@
+import React from 'react';
+import { 
+  GitBranch, 
+  CheckCircle2, 
+  Wifi, 
+  Users 
+} from 'lucide-react';
+import { useProjectStore } from '../../store/useProjectStore';
+
+export const StatusBar: React.FC = () => {
+  const { openTabs, activeTabId, collaborators } = useProjectStore();
+
+  const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const language = activeTab ? activeTab.language : 'Plain Text';
+
+  return (
+    <footer className="h-6 bg-ide-activity border-t border-ide-border px-3 flex items-center justify-between text-ide-xs text-ide-muted select-none z-30 font-mono">
+      {/* Left Section: Git & RAG status */}
+      <div className="flex items-center gap-3">
+        {/* Git Branch */}
+        <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
+          <GitBranch className="w-3.5 h-3.5 text-ide-blue" />
+          <span>main*</span>
+        </div>
+
+        {/* RAG Status */}
+        <div className="hidden sm:flex items-center gap-1 text-ide-muted hover:text-white cursor-pointer transition-colors">
+          <CheckCircle2 className="w-3 h-3 text-ide-green" />
+          <span>RAG Indexed</span>
+        </div>
+      </div>
+
+      {/* Right Section: Editor Metrics & Connectivity */}
+      <div className="flex items-center gap-3">
+        {/* Line & Column */}
+        <span className="hover:text-white cursor-pointer">Ln 1, Col 1</span>
+
+        {/* Indentation */}
+        <span className="hidden md:inline hover:text-white cursor-pointer">Spaces: 4</span>
+
+        {/* Encoding */}
+        <span className="hidden md:inline hover:text-white cursor-pointer">UTF-8</span>
+
+        {/* Active Language Mode */}
+        <span className="hover:text-white cursor-pointer capitalize font-sans text-ide-text">
+          {language}
+        </span>
+
+        {/* Online Presence */}
+        <div className="hidden sm:flex items-center gap-1 text-ide-text">
+          <Users className="w-3.5 h-3.5 text-ide-blue" />
+          <span>{collaborators.length + 1}</span>
+        </div>
+
+        {/* Real-time Connection Status */}
+        <div className="flex items-center gap-1 text-ide-green font-sans" title="Connected to WebSocket Server">
+          <Wifi className="w-3 h-3" />
+          <span className="hidden sm:inline">Connected</span>
+        </div>
+      </div>
+    </footer>
+  );
+};
