@@ -8,7 +8,8 @@ import {
   Plus, 
   User as UserIcon,
   LogOut,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -20,13 +21,16 @@ export const TopBar: React.FC = () => {
     setCreateProjectOpen, 
     setAuthModalOpen,
     isAiPanelOpen,
-    toggleAiPanel 
+    toggleAiPanel,
+    showConfirm,
+    showToast
   } = useUIStore();
 
   const { 
     currentProject, 
     projects, 
     selectProject, 
+    deleteProject,
     collaborators,
     runActiveFile,
     isExecuting,
@@ -46,6 +50,25 @@ export const TopBar: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [runActiveFile]);
+
+  const handleDeleteProject = async (proj: { id: string; name: string }) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Project',
+      message: `Are you sure you want to permanently delete '${proj.name}'?\n\nAll files, folders, and history in this project will be deleted. This action cannot be undone.`,
+      confirmText: 'Delete Project',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await deleteProject(proj.id);
+      showToast(`Project '${proj.name}' was deleted.`, 'info');
+    } catch (err: any) {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    }
+  };
 
   return (
     <header className="h-10 bg-ide-sidebar border-b border-ide-border px-3 flex items-center justify-between text-ide-base select-none z-30">
@@ -87,21 +110,34 @@ export const TopBar: React.FC = () => {
 
               <div className="max-h-56 overflow-y-auto py-1">
                 {projects.map((proj) => (
-                  <button
+                  <div
                     key={proj.id}
                     onClick={() => {
                       selectProject(proj);
                       setIsProjectDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-1.5 text-left text-ide-sm flex items-center justify-between hover:bg-[#2a2d2e] ${
+                    className={`w-full px-3 py-1.5 text-left text-ide-sm flex items-center justify-between hover:bg-[#2a2d2e] cursor-pointer group/proj transition-colors ${
                       currentProject?.id === proj.id ? 'bg-[#04395e] text-white' : 'text-ide-text'
                     }`}
                   >
-                    <span className="truncate">{proj.name}</span>
-                    <span className="text-ide-xs text-ide-muted ml-2 shrink-0">
-                      {proj.role || 'editor'}
-                    </span>
-                  </button>
+                    <span className="truncate flex-1 mr-2">{proj.name}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-ide-xs text-ide-muted">
+                        {proj.role || 'editor'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(proj);
+                        }}
+                        className="opacity-0 group-hover/proj:opacity-100 p-1 text-ide-muted hover:text-red-400 hover:bg-[#383838] rounded transition-all ml-1"
+                        title={`Delete project '${proj.name}'`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 ))}
 
                 {projects.length === 0 && (

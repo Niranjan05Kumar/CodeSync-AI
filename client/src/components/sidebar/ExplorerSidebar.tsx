@@ -6,7 +6,8 @@ import {
   Search, 
   X, 
   FolderGit2, 
-  Plus,
+  Plus, 
+  Trash2,
   ChevronDown
 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -14,13 +15,32 @@ import { useUIStore } from '../../store/useUIStore';
 import { FileTree } from './FileTree';
 
 export const ExplorerSidebar: React.FC = () => {
-  const { currentProject, projects, selectProject, isTreeLoading, refreshTree } = useProjectStore();
-  const { setCreateProjectOpen } = useUIStore();
+  const { currentProject, projects, selectProject, deleteProject, isTreeLoading, refreshTree } = useProjectStore();
+  const { setCreateProjectOpen, showConfirm, showToast } = useUIStore();
   
   const [filterQuery, setFilterQuery] = useState('');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [creatingRootType, setCreatingRootType] = useState<'file' | 'folder' | null>(null);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+
+  const handleDeleteProject = async (proj: { id: string; name: string }) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Project',
+      message: `Are you sure you want to permanently delete '${proj.name}'?\n\nAll files, folders, and history in this project will be deleted. This action cannot be undone.`,
+      confirmText: 'Delete Project',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await deleteProject(proj.id);
+      showToast(`Project '${proj.name}' was deleted.`, 'info');
+    } catch (err: any) {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-ide-sidebar border-r border-ide-border select-none">
@@ -97,21 +117,35 @@ export const ExplorerSidebar: React.FC = () => {
               </div>
               <div className="max-h-48 overflow-y-auto">
                 {projects.map((p) => (
-                  <button
+                  <div
                     key={p.id}
                     onClick={() => {
                       selectProject(p);
                       setIsProjectDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-1.5 text-left text-ide-sm flex items-center justify-between hover:bg-[#2a2d2e] ${
+                    className={`w-full px-3 py-1.5 text-left text-ide-sm flex items-center justify-between hover:bg-[#2a2d2e] cursor-pointer group/proj transition-colors ${
                       currentProject?.id === p.id ? 'text-ide-blue font-medium bg-[#2a2d2e]/50' : 'text-ide-text'
                     }`}
                   >
-                    <span className="truncate">{p.name}</span>
-                    {p.is_public && (
-                      <span className="text-ide-xs text-ide-dim px-1 rounded bg-[#1e1e1e]">public</span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                      <span className="truncate">{p.name}</span>
+                      {p.is_public && (
+                        <span className="text-ide-xs text-ide-dim px-1 rounded bg-[#1e1e1e] shrink-0">public</span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(p);
+                      }}
+                      className="opacity-0 group-hover/proj:opacity-100 p-1 text-ide-muted hover:text-red-400 hover:bg-[#383838] rounded transition-all shrink-0"
+                      title={`Delete project '${p.name}'`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
               <div className="border-t border-ide-border mt-1 pt-1">

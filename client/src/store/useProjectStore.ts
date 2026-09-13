@@ -34,6 +34,7 @@ interface ProjectState {
 
   fetchProjects: () => Promise<void>;
   selectProject: (project: Project) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   refreshTree: () => Promise<void>;
 
   openFile: (file: { id: string; name: string; path: string; language: string }) => Promise<void>;
@@ -154,6 +155,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     } catch (err) {
       console.error('[ProjectStore] Failed to load project tree:', err);
       set({ isTreeLoading: false });
+    }
+  },
+
+  deleteProject: async (projectId: string) => {
+    await projectApi.deleteProject(projectId);
+    const { projects, currentProject } = get();
+    const remaining = projects.filter((p) => p.id !== projectId);
+    set({ projects: remaining });
+
+    if (currentProject?.id === projectId) {
+      if (remaining.length > 0) {
+        await get().selectProject(remaining[0]);
+      } else {
+        set({
+          currentProject: null,
+          fileTree: [],
+          openTabs: [],
+          activeTabId: null,
+          activeFileContent: '',
+          unsavedFileIds: []
+        });
+      }
     }
   },
 
