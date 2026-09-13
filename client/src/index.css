@@ -47,3 +47,64 @@
     color: #ffffff;
   }
 }
+
+/* ==========================================================================
+   MONACO EDITOR REMOTE COLLABORATOR CURSORS & SELECTIONS (UI_DESIGN.md 4.4)
+   ========================================================================== */
+
+.remote-cursor {
+  position: absolute;
+  width: 2px !important;
+  pointer-events: none;
+  z-index: 100;
+  transition: all 0.08s ease-out;
+}
+
+.remote-cursor-tooltip {
+  position: absolute;
+  top: -18px;
+  left: -2px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  padding: 1px 4px;
+  border-radius: 2px 2px 2px 0;
+  white-space: nowrap;
+  color: #ffffff;
+  pointer-events: none;
+  z-index: 101;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+.remote-selection {
+  position: absolute;
+  pointer-events: none;
+  z-index: 90;
+}
+
+/* Collaborator Specific Color Variants */
+.remote-cursor-amber { border-left: 2px solid #e5a93c !important; }
+.remote-tooltip-amber { background-color: #e5a93c !important; }
+.remote-selection-amber { background-color: rgba(229, 169, 60, 0.20) !important; }
+
+.remote-cursor-emerald { border-left: 2px solid #4ec9b0 !important; }
+.remote-tooltip-emerald { background-color: #4ec9b0 !important; }
+.remote-selection-emerald { background-color: rgba(78, 201, 176, 0.20) !important; }
+
+.remote-cursor-sky { border-left: 2px solid #4fc1ff !important; }
+.remote-tooltip-sky { background-color: #4fc1ff !important; }
+.remote-selection-sky { background-color: rgba(79, 193, 255, 0.20) !important; }
+
+.remote-cursor-rose { border-left: 2px solid #f14c4c !important; }
+.remote-tooltip-rose { background-color: #f14c4c !important; }
+.remote-selection-rose { background-color: rgba(241, 76, 76, 0.20) !important; }
+
+.remote-cursor-purple { border-left: 2px solid #c586c0 !important; }
+.remote-tooltip-purple { background-color: #c586c0 !important; }
+.remote-selection-purple { background-color: rgba(197, 134, 192, 0.20) !important; }
+
+.remote-cursor-orange { border-left: 2px solid #ce9178 !important; }
+.remote-tooltip-orange { background-color: #ce9178 !important; }
+.remote-selection-orange { background-color: rgba(206, 145, 120, 0.20) !important; }

@@ -14,6 +14,7 @@ export interface UIState {
   // Active Selections
   activeActivityTab: 'explorer' | 'search' | 'ai' | 'settings';
   activeBottomTab: 'output' | 'terminal' | 'problems' | 'chat';
+  cursorPosition: { lineNumber: number; column: number };
 
   // Modals
   isQuickOpenOpen: boolean;
@@ -34,6 +35,7 @@ export interface UIState {
 
   setActiveActivityTab: (tab: 'explorer' | 'search' | 'ai' | 'settings') => void;
   setActiveBottomTab: (tab: 'output' | 'terminal' | 'problems' | 'chat') => void;
+  setCursorPosition: (pos: { lineNumber: number; column: number }) => void;
 
   setQuickOpenOpen: (open: boolean) => void;
   setCreateProjectOpen: (open: boolean) => void;
@@ -51,6 +53,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   activeActivityTab: 'explorer',
   activeBottomTab: 'output',
+  cursorPosition: { lineNumber: 1, column: 1 },
 
   isQuickOpenOpen: false,
   isCreateProjectOpen: false,
@@ -78,6 +81,7 @@ export const useUIStore = create<UIState>((set) => ({
   }),
 
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab, isBottomPanelOpen: true }),
+  setCursorPosition: (pos) => set({ cursorPosition: pos }),
 
   setQuickOpenOpen: (open) => set({ isQuickOpenOpen: open }),
   setCreateProjectOpen: (open) => set({ isCreateProjectOpen: open }),

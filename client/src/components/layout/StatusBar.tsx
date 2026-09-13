@@ -6,12 +6,15 @@ import {
   Users 
 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
+import { useUIStore } from '../../store/useUIStore';
+import { getLanguageDisplayName } from '../editor/monacoConfig';
 
 export const StatusBar: React.FC = () => {
   const { openTabs, activeTabId, collaborators } = useProjectStore();
+  const { cursorPosition } = useUIStore();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
-  const language = activeTab ? activeTab.language : 'Plain Text';
+  const language = activeTab ? getLanguageDisplayName(activeTab.language) : 'Plain Text';
 
   return (
     <footer className="h-6 bg-ide-activity border-t border-ide-border px-3 flex items-center justify-between text-ide-xs text-ide-muted select-none z-30 font-mono">
@@ -33,16 +36,18 @@ export const StatusBar: React.FC = () => {
       {/* Right Section: Editor Metrics & Connectivity */}
       <div className="flex items-center gap-3">
         {/* Line & Column */}
-        <span className="hover:text-white cursor-pointer">Ln 1, Col 1</span>
+        <span className="hover:text-white cursor-pointer">
+          Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
+        </span>
 
         {/* Indentation */}
-        <span className="hidden md:inline hover:text-white cursor-pointer">Spaces: 4</span>
+        <span className="hidden md:inline hover:text-white cursor-pointer">Spaces: 2</span>
 
         {/* Encoding */}
         <span className="hidden md:inline hover:text-white cursor-pointer">UTF-8</span>
 
         {/* Active Language Mode */}
-        <span className="hover:text-white cursor-pointer capitalize font-sans text-ide-text">
+        <span className="hover:text-white cursor-pointer font-sans text-ide-text">
           {language}
         </span>
 
