@@ -27,7 +27,7 @@ function getDefaultModel(): string {
     return process.env.OPENAI_MODEL;
   }
   if (baseURL?.includes('groq.com')) {
-    return 'llama-3.3-70b-versatile';
+    return 'openai/gpt-oss-120b';
   }
   if (baseURL?.includes('googleapis.com')) {
     return 'gemini-2.0-flash';
