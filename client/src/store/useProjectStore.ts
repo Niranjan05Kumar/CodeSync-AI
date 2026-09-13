@@ -375,7 +375,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         code: activeFileContent
       });
 
-      const result = res.data;
+      // Handle both unwrapped and wrapped ExecutionResult structures
+      const result: ExecutionResult = (res as any)?.data ?? res;
+      if (!result || typeof result !== 'object') {
+        throw new Error('No execution result returned from server');
+      }
+
       const newItems: ExecutionLogItem[] = [];
 
       if (result.stdout) {

@@ -18,7 +18,7 @@ export interface ExecuteParams {
 
 export const executionApi = {
   execute: (payload: ExecuteParams) => {
-    return request<{ success: boolean; data: ExecutionResult }>('/execute', {
+    return request<ExecutionResult>('/execute', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
