@@ -13,7 +13,8 @@ export const validateBody = (schema: AnyZodObject) => {
           field: err.path.join('.'),
           message: err.message
         }));
-        next(ApiError.badRequest('Validation error', 'VALIDATION_ERROR', details));
+        const primaryMessage = details.map((d) => d.message).join('. ') || 'Validation error';
+        next(ApiError.badRequest(primaryMessage, 'VALIDATION_ERROR', details));
       } else {
         next(error);
       }
@@ -32,7 +33,8 @@ export const validateQuery = (schema: AnyZodObject) => {
           field: err.path.join('.'),
           message: err.message
         }));
-        next(ApiError.badRequest('Query validation error', 'VALIDATION_ERROR', details));
+        const primaryMessage = details.map((d) => d.message).join('. ') || 'Query validation error';
+        next(ApiError.badRequest(primaryMessage, 'VALIDATION_ERROR', details));
       } else {
         next(error);
       }
@@ -51,7 +53,8 @@ export const validateParams = (schema: AnyZodObject) => {
           field: err.path.join('.'),
           message: err.message
         }));
-        next(ApiError.badRequest('Parameter validation error', 'VALIDATION_ERROR', details));
+        const primaryMessage = details.map((d) => d.message).join('. ') || 'Parameter validation error';
+        next(ApiError.badRequest(primaryMessage, 'VALIDATION_ERROR', details));
       } else {
         next(error);
       }

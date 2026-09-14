@@ -23,20 +23,53 @@ export const AuthModal: React.FC = () => {
 
     try {
       if (mode === 'login') {
-        await login(email, password);
+        if (!email.trim() || !password) {
+          setError('Email and password are required');
+          setIsLoading(false);
+          return;
+        }
+        await login(email.trim(), password);
         showToast('Signed in successfully!', 'success');
       } else {
-        if (!username.trim()) {
+        const trimmedUser = username.trim();
+        const trimmedEmail = email.trim();
+
+        if (!trimmedUser) {
           setError('Username is required');
           setIsLoading(false);
           return;
         }
-        await register(username.trim(), email.trim(), password);
+        if (trimmedUser.length < 3 || trimmedUser.length > 30) {
+          setError('Username must be between 3 and 30 characters');
+          setIsLoading(false);
+          return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(trimmedUser)) {
+          setError('Username can only contain letters, numbers, and underscores');
+          setIsLoading(false);
+          return;
+        }
+        if (!trimmedEmail) {
+          setError('Email is required');
+          setIsLoading(false);
+          return;
+        }
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters long');
+          setIsLoading(false);
+          return;
+        }
+
+        await register(trimmedUser, trimmedEmail, password);
         showToast('Account created successfully!', 'success');
       }
       setAuthModalOpen(false);
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      if (err.details && Array.isArray(err.details) && err.details.length > 0) {
+        setError(err.details.map((d: any) => d.message).join('. '));
+      } else {
+        setError(err.message || 'Authentication failed');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +170,7 @@ export const AuthModal: React.FC = () => {
                     className="w-full pl-9 pr-3 py-2 bg-[#1e1e1e] border border-ide-border rounded text-white text-ide-sm outline-none focus:border-ide-blue"
                   />
                 </div>
+                <p className="text-[11px] text-ide-muted mt-1">3–30 characters (letters, numbers, underscore)</p>
               </div>
             )}
 
@@ -172,6 +206,9 @@ export const AuthModal: React.FC = () => {
                   className="w-full pl-9 pr-3 py-2 bg-[#1e1e1e] border border-ide-border rounded text-white text-ide-sm outline-none focus:border-ide-blue"
                 />
               </div>
+              {mode === 'register' && (
+                <p className="text-[11px] text-ide-muted mt-1">Must be at least 8 characters</p>
+              )}
             </div>
 
             <button
