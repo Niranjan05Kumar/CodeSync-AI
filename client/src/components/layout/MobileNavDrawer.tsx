@@ -11,8 +11,7 @@ import {
   LogOut, 
   User as UserIcon,
   FolderGit2,
-  Share2,
-  Code2
+  Share2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -76,7 +75,7 @@ export const MobileNavDrawer: React.FC = () => {
         {/* Header */}
         <div className="h-12 px-4 border-b border-ide-border flex items-center justify-between bg-ide-activity shrink-0">
           <div className="flex items-center gap-2 font-semibold text-white">
-            <Code2 className="w-5 h-5 text-ide-blue" />
+            <img src="/favicon.svg" alt="CodeSync AI" className="w-5 h-5 rounded" />
             <span className="text-ide-base font-bold">CodeSync AI</span>
           </div>
           <button

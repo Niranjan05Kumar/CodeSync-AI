@@ -17,7 +17,18 @@ export function initSocketServer(httpServer: HTTPServer): SocketIOServer {
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' ? allowedOrigins : '*',
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+          process.env.NODE_ENV !== 'production' ||
+          allowedOrigins.includes(origin) ||
+          allowedOrigins.includes('*') ||
+          origin.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Socket.IO CORS origin '${origin}' not allowed.`));
+      },
       methods: ['GET', 'POST'],
       credentials: true
     },

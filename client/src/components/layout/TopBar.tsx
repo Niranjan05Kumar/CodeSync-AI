@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
-  Code2, 
   Play, 
   Search, 
   Sparkles, 
@@ -162,9 +161,9 @@ export const TopBar: React.FC = () => {
         </button>
 
         {/* Brand */}
-        <div className="flex items-center gap-1.5 font-semibold text-white tracking-wide shrink-0">
-          <Code2 className="w-5 h-5 text-ide-blue shrink-0" />
-          <span className="hidden sm:inline font-bold">CodeSync</span>
+        <div className="flex items-center gap-2 font-semibold text-white tracking-wide shrink-0">
+          <img src="/favicon.svg" alt="CodeSync AI" className="w-5 h-5 rounded shrink-0" />
+          <span className="hidden sm:inline font-bold">CodeSync AI</span>
         </div>
 
         {/* Project Selector Dropdown */}
