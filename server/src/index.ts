@@ -35,8 +35,10 @@ async function startServer() {
   const httpServer = http.createServer(app);
   const io = initSocketServer(httpServer);
 
-  const server = httpServer.listen(PORT, () => {
-    console.log(`\n🚀 CodeSync AI Server & Socket.IO running at http://localhost:${PORT}`);
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 CodeSync AI Server & Socket.IO running:`);
+    console.log(`   - Local:    http://localhost:${PORT}`);
+    console.log(`   - Network:  http://0.0.0.0:${PORT}`);
     console.log(`   Health Check: http://localhost:${PORT}/api/v1/health`);
     console.log(`   Environment:  ${process.env.NODE_ENV || 'development'}\n`);
   });

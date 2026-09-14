@@ -1,4 +1,23 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+export function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    // If accessing from another device (e.g. mobile/tablet on LAN), dynamically replace localhost with current host
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      try {
+        const url = new URL(envUrl);
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+          return `${url.protocol}//${window.location.hostname}:${url.port || '5000'}${url.pathname}`;
+        }
+      } catch {
+        return '/api/v1';
+      }
+    }
+    return envUrl;
+  }
+  return '/api/v1';
+}
+
+export const API_BASE = getApiBaseUrl();
 
 export class ApiRequestError extends Error {
   public code: string;
@@ -18,6 +37,7 @@ export async function request<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = localStorage.getItem('codesync_access_token');
+  const apiBase = getApiBaseUrl();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -28,7 +48,7 @@ export async function request<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const url = `${apiBase}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   let response: Response;
   try {
@@ -45,7 +65,7 @@ export async function request<T = any>(
     const refreshToken = localStorage.getItem('codesync_refresh_token');
     if (refreshToken) {
       try {
-        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+        const refreshRes = await fetch(`${apiBase}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken })

@@ -1,4 +1,4 @@
-import { request } from './client';
+import { request, getApiBaseUrl } from './client';
 
 export interface ReviewIssue {
   type: 'SECURITY' | 'BUG' | 'PERFORMANCE' | 'STYLE';
@@ -79,7 +79,7 @@ export const aiApi = {
   ): (() => void) => {
     const controller = new AbortController();
     const token = localStorage.getItem('codesync_access_token');
-    const apiBase = import.meta.env.VITE_API_URL || '/api/v1';
+    const apiBase = getApiBaseUrl();
 
     fetch(`${apiBase}/ai/chat`, {
       method: 'POST',
