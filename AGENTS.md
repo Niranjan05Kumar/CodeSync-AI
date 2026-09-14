@@ -7,6 +7,17 @@
 
 ---
 
+## 0. Mandatory Workflow Rule: User Approval Required Before Any File Changes
+
+> [!IMPORTANT]
+> **Wait for my approval before making any changes in any file.**  
+> For every task, fix, refactor, or feature:
+> 1. The agent MUST create an **Implementation Plan** first and present the intended changes.
+> 2. The agent MUST **STOP and wait for explicit user approval** (via the chat UI Proceed button or written confirmation).
+> 3. The agent is strictly forbidden from editing, creating, or deleting any file in this repository before user approval is granted.
+
+---
+
 ## 1. Authoritative Reference Documents
 
 Before generating or modifying any code in this repository, you **MUST** align with the specifications defined in:
