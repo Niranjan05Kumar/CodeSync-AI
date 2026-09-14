@@ -13,9 +13,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'project_role') THEN
         CREATE TYPE project_role AS ENUM ('owner', 'editor', 'viewer');
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'execution_status') THEN
-        CREATE TYPE execution_status AS ENUM ('queued', 'running', 'completed', 'failed', 'timeout');
-    END IF;
 END $$;
 
 -- 3. Users Table
@@ -123,43 +120,3 @@ ON code_embeddings
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
--- 9. Code Execution Audit Logs
-CREATE TABLE IF NOT EXISTS execution_jobs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    language VARCHAR(30) NOT NULL,
-    code TEXT NOT NULL,
-    stdin TEXT DEFAULT '',
-    stdout TEXT DEFAULT '',
-    stderr TEXT DEFAULT '',
-    exit_code INTEGER,
-    execution_time_ms INTEGER,
-    memory_used_bytes INTEGER,
-    status execution_status DEFAULT 'queued',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_exec_project ON execution_jobs(project_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_exec_user ON execution_jobs(user_id);
-
--- 10. AI Conversations & Grounded History
-CREATE TABLE IF NOT EXISTS ai_conversations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(150) DEFAULT 'New AI Session',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS ai_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
-    content TEXT NOT NULL,
-    context_chunks JSONB DEFAULT '[]'::jsonb, -- Cited file paths, lines, and similarity scores
-    tokens_consumed INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_messages_conv ON ai_messages(conversation_id, created_at ASC);

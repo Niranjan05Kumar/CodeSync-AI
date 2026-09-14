@@ -27,15 +27,7 @@ export const executionService = {
 
     const jobId = crypto.randomUUID();
 
-    // 2. Insert execution audit record into PostgreSQL
-    await query(
-      `INSERT INTO execution_jobs (
-         id, project_id, user_id, language, code, stdin, status
-       ) VALUES ($1, $2, $3, $4, $5, $6, 'running')`,
-      [jobId, projectId, userId, language, code, stdin]
-    );
-
-    // 3. Execute in sandbox (Dockerode with security flags or resilient fallback)
+    // 2. Execute in sandbox (Dockerode with security flags or resilient fallback)
     const result = await executeInSandbox({
       jobId,
       language,
@@ -43,28 +35,7 @@ export const executionService = {
       stdin
     });
 
-    // 4. Update audit record with final metrics and outputs
-    await query(
-      `UPDATE execution_jobs SET
-         stdout = $1,
-         stderr = $2,
-         exit_code = $3,
-         execution_time_ms = $4,
-         memory_used_bytes = $5,
-         status = $6
-       WHERE id = $7`,
-      [
-        result.stdout,
-        result.stderr,
-        result.exitCode,
-        result.executionTimeMs,
-        result.memoryUsedBytes,
-        result.status,
-        jobId
-      ]
-    );
-
-    // 5. Broadcast execution completion to room via Socket.IO if initialized
+    // 3. Broadcast execution completion to room via Socket.IO if initialized
     try {
       const io = getIO();
       io.to(`project:${projectId}`).emit('execution:result', {
