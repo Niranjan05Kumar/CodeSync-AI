@@ -4,7 +4,7 @@ import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setAuthModalOpen } = useUIStore();
+  const { isAuthModalOpen, setAuthModalOpen, showConfirm, showToast } = useUIStore();
   const { login, register, isAuthenticated, user, logout } = useAuthStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -24,6 +24,7 @@ export const AuthModal: React.FC = () => {
     try {
       if (mode === 'login') {
         await login(email, password);
+        showToast('Signed in successfully!', 'success');
       } else {
         if (!username.trim()) {
           setError('Username is required');
@@ -31,12 +32,29 @@ export const AuthModal: React.FC = () => {
           return;
         }
         await register(username.trim(), email.trim(), password);
+        showToast('Account created successfully!', 'success');
       }
       setAuthModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const confirmed = await showConfirm({
+      title: 'Log Out',
+      message: 'Are you sure you want to log out of CodeSync AI? Your active session and open project will be closed.',
+      confirmText: 'Log Out',
+      cancelText: 'Stay Logged In',
+      type: 'danger'
+    });
+
+    if (confirmed) {
+      logout();
+      setAuthModalOpen(false);
+      showToast('Logged out successfully', 'info');
     }
   };
 
@@ -87,10 +105,7 @@ export const AuthModal: React.FC = () => {
                 Close
               </button>
               <button
-                onClick={() => {
-                  logout();
-                  setAuthModalOpen(false);
-                }}
+                onClick={handleSignOut}
                 className="px-4 py-2 rounded bg-red-800 hover:bg-red-700 text-white text-ide-sm font-medium transition-colors"
               >
                 Sign Out

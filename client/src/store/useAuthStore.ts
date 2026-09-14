@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { User, AuthTokens } from '../types';
 import { authApi } from '../api/authApi';
+import { useProjectStore } from './useProjectStore';
+import { updateSocketAuthToken, disconnectSocket } from '../sockets/socketClient';
 
 interface AuthState {
   user: User | null;
@@ -40,6 +42,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: true,
       isLoading: false
     });
+    updateSocketAuthToken(tokens.accessToken);
+    // Immediately fetch projects & files for the newly authenticated user
+    useProjectStore.getState().fetchProjects();
   },
 
   logout: () => {
@@ -51,12 +56,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       isLoading: false
     });
+    disconnectSocket();
+    // Clean up all projects, file trees, tabs, and collaborator state from UI
+    useProjectStore.getState().resetProjectStore();
   },
 
   initAuth: async () => {
     const token = localStorage.getItem('codesync_access_token');
     if (!token) {
       set({ isLoading: false, isAuthenticated: false });
+      useProjectStore.getState().resetProjectStore();
       return;
     }
 
@@ -67,6 +76,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false
       });
+      // Fetch projects once authentication is confirmed
+      useProjectStore.getState().fetchProjects();
     } catch {
       localStorage.removeItem('codesync_access_token');
       localStorage.removeItem('codesync_refresh_token');
@@ -76,6 +87,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
         isLoading: false
       });
+      disconnectSocket();
+      useProjectStore.getState().resetProjectStore();
     }
   }
 }));

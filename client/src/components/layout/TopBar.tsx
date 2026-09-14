@@ -70,6 +70,21 @@ export const TopBar: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    const confirmed = await showConfirm({
+      title: 'Log Out',
+      message: 'Are you sure you want to log out of CodeSync AI? Your current session and open project will be closed.',
+      confirmText: 'Log Out',
+      cancelText: 'Stay Logged In',
+      type: 'danger'
+    });
+
+    if (confirmed) {
+      logout();
+      showToast('Logged out successfully', 'info');
+    }
+  };
+
   return (
     <header className="h-10 bg-ide-sidebar border-b border-ide-border px-3 flex items-center justify-between text-ide-base select-none z-30">
       {/* Left Section: Branding, Project Picker & Quick Search */}
@@ -236,7 +251,7 @@ export const TopBar: React.FC = () => {
               <span className="hidden xl:inline max-w-[100px] truncate">{user.username}</span>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="p-1 hover:text-ide-red text-ide-muted transition-colors rounded"
               title="Log Out"
             >

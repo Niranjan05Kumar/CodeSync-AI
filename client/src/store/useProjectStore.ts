@@ -53,6 +53,7 @@ interface ProjectState {
   addChatMessage: (msg: ChatMessage) => void;
   clearChatMessages: () => void;
   deleteChatMessage: (messageId: string) => void;
+  resetProjectStore: () => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -128,6 +129,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   deleteChatMessage: (messageId) => set((s) => ({
     chatMessages: s.chatMessages.filter((m) => m.id !== messageId)
   })),
+
+  resetProjectStore: () => {
+    set({
+      currentProject: null,
+      projects: [],
+      fileTree: [],
+      openTabs: [],
+      activeTabId: null,
+      activeFileContent: '',
+      activeFileVersion: 1,
+      unsavedFileIds: [],
+      isTreeLoading: false,
+      collaborators: [],
+      chatMessages: [],
+      isExecuting: false,
+      executionResult: null,
+      executionLogs: []
+    });
+  },
 
   fetchProjects: async () => {
     try {
