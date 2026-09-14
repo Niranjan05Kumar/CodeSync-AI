@@ -31,8 +31,18 @@ export const EditorArea: React.FC = () => {
   const [editorInstance, setEditorInstance] = useState<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const debounceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isApplyingRemoteRef = useRef(false);
+  const isProgrammaticUpdateRef = useRef(true);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
+
+  // Whenever activeTabId changes (file load / tab switch), mark as programmatic update
+  useEffect(() => {
+    isProgrammaticUpdateRef.current = true;
+    const timer = setTimeout(() => {
+      isProgrammaticUpdateRef.current = false;
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [activeTabId]);
 
   // Apply remote collaborator cursor decorations
   useMonacoDecorations(editorInstance, collaborators, activeTabId);
@@ -85,8 +95,18 @@ export const EditorArea: React.FC = () => {
 
     // 2. Broadcast local delta changes on model content change
     editor.onDidChangeModelContent((event) => {
-      // If changes were applied from a remote peer, DO NOT broadcast back (prevent echo loop)
+      // Never broadcast if changes were applied from a remote peer (prevent echo loop)
       if (isApplyingRemoteRef.current) return;
+
+      // Never broadcast if changes are from programmatic model loading / tab switching
+      if (isProgrammaticUpdateRef.current) return;
+
+      // Never broadcast full buffer flushes (model.setValue)
+      if (event.isFlush) return;
+
+      // CRITICAL: Only broadcast if the user is actively focused and typing in this editor instance.
+      // This strictly prevents initial file loads or background tab mounts from broadcasting the entire file.
+      if (!editor.hasTextFocus() && !editor.hasWidgetFocus()) return;
 
       if (activeTab && event.changes && event.changes.length > 0) {
         const monacoChanges: MonacoChange[] = event.changes.map((c) => ({
@@ -157,7 +177,10 @@ export const EditorArea: React.FC = () => {
         } catch (err) {
           console.warn('[EditorArea] Failed to apply remote edits:', err);
         } finally {
-          isApplyingRemoteRef.current = false;
+          // Delay resetting remote flag slightly to let React re-render complete safely
+          setTimeout(() => {
+            isApplyingRemoteRef.current = false;
+          }, 50);
         }
       }
     };
@@ -171,7 +194,7 @@ export const EditorArea: React.FC = () => {
 
   // Handle local typing with 1.5s debounced database persistence
   const handleEditorChange = useCallback((value: string | undefined) => {
-    if (isApplyingRemoteRef.current) return;
+    if (isApplyingRemoteRef.current || isProgrammaticUpdateRef.current) return;
 
     const text = value ?? '';
     updateActiveContent(text);
