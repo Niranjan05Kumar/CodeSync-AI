@@ -655,27 +655,6 @@ export const AIAssistantSidebar: React.FC = () => {
 
           {debugResult && (
             <div className="space-y-3 select-text text-xs">
-              <div className="p-3 bg-[#252526] border-l-4 border-l-ide-red border border-ide-border rounded space-y-1">
-                <div className="font-semibold text-ide-red uppercase text-[10px] tracking-wider">
-                  Root Cause
-                </div>
-                <div className="font-medium text-white">{debugResult.rootCause}</div>
-                <p className="text-ide-dim text-[11px] leading-relaxed pt-1">
-                  {debugResult.explanation}
-                </p>
-              </div>
-
-              {debugResult.steps && debugResult.steps.length > 0 && (
-                <div className="p-2.5 bg-[#252526] border border-ide-border rounded space-y-1.5">
-                  <div className="font-semibold text-white text-[11px]">Resolution Steps:</div>
-                  <ul className="space-y-1 list-disc list-inside text-ide-dim text-[11px]">
-                    {debugResult.steps.map((step, idx) => (
-                      <li key={idx}>{step}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               {debugResult.fixedCode && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-ide-muted text-[11px]">

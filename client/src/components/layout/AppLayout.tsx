@@ -4,6 +4,7 @@ import { ActivityBar } from './ActivityBar';
 import { StatusBar } from './StatusBar';
 import { ResizableHandle } from './ResizableHandle';
 import { ExplorerSidebar } from '../sidebar/ExplorerSidebar';
+import { CollaboratorsSidebar } from '../sidebar/CollaboratorsSidebar';
 import { EditorArea } from '../editor/EditorArea';
 import { BottomDock } from '../dock/BottomDock';
 import { AIAssistantSidebar } from '../ai/AIAssistantSidebar';
@@ -48,6 +49,7 @@ export const AppLayout: React.FC = () => {
               className="h-full shrink-0 flex flex-col overflow-hidden bg-ide-sidebar z-10"
             >
               {activeActivityTab === 'explorer' && <ExplorerSidebar />}
+              {activeActivityTab === 'collaborators' && <CollaboratorsSidebar />}
               {activeActivityTab === 'search' && (
                 <div className="h-full flex flex-col p-4 text-ide-dim text-ide-sm">
                   <span className="font-semibold text-white uppercase text-ide-xs tracking-wider mb-2">

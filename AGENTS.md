@@ -7,14 +7,13 @@
 
 ---
 
-## 0. Mandatory Workflow Rule: User Approval Required Before Any File Changes
+## 0. Workflow Rule: File Change Review & IDE Diff Acceptance
 
 > [!IMPORTANT]
-> **Wait for my approval before making any changes in any file.**  
-> For every task, fix, refactor, or feature:
-> 1. The agent MUST create an **Implementation Plan** first and present the intended changes.
-> 2. The agent MUST **STOP and wait for explicit user approval** (via the chat UI Proceed button or written confirmation).
-> 3. The agent is strictly forbidden from editing, creating, or deleting any file in this repository before user approval is granted.
+> **Propose file modifications directly so the user can review and Accept/Reject them in the IDE.**  
+> 1. The agent should directly propose code edits using file modification tools so that Antigravity IDE surfaces the **"Files With Changes"** review bar with **"Accept all"** and **"Reject all"** buttons.
+> 2. Do NOT create blocking implementation plans unless the user explicitly requests one or asks to plan first.
+> 3. The agent MUST NOT automatically run `git commit` or `git push` without explicit user instruction, ensuring file changes remain visible for the user to review and accept in the IDE.
 
 ---
 
@@ -247,4 +246,4 @@ When an agent completes a task or phase, it **MUST verify** the deliverable:
 3. **API Contracts**: Test endpoints using curl, Supertest, or Postman collections; ensure error paths return standardized `{ success: false, error: { message, code } }` with proper HTTP status codes (400, 401, 403, 404, 500).
 4. **Real-Time Testing**: Confirm that Socket.IO events match the payload signatures in Section 7 of [FINAL_TECHNICAL_REPORT.md](file:///d:/CodeEditor/FINAL_TECHNICAL_REPORT.md).
 5. **Sandbox Verification**: When testing code execution, run a loop script (`while True: pass`) to ensure the 5-second SIGKILL terminates the container without crashing the Node.js server.
-6. **Git Milestone & Push Discipline**: After completing and verifying each phase or significant feature update, the agent **MUST automatically stage, commit, and push** the tested code to `origin main` (`https://github.com/Niranjan05Kumar/CodeSync-AI.git`). Never commit `.env` or secret files.
+6. **Git Milestone & Push Discipline**: The agent must **NOT** automatically stage, commit, or push code. Changes must remain uncommitted in the workspace so the user can review diffs and use the IDE's **"Accept all"** or **"Reject all"** buttons. Only stage, commit, or push when the user explicitly instructs to do so. Never commit `.env` or secret files.

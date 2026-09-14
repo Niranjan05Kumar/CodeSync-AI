@@ -28,7 +28,7 @@ export interface UIState {
   bottomPanelHeight: number;  // Default: 224, Min: 120, Max: 600
 
   // Active Selections
-  activeActivityTab: 'explorer' | 'search' | 'ai' | 'settings';
+  activeActivityTab: 'explorer' | 'search' | 'ai' | 'settings' | 'collaborators';
   activeBottomTab: 'output' | 'terminal' | 'chat';
   cursorPosition: { lineNumber: number; column: number };
 
@@ -55,7 +55,7 @@ export interface UIState {
   setAiPanelWidth: (width: number) => void;
   setBottomPanelHeight: (height: number) => void;
 
-  setActiveActivityTab: (tab: 'explorer' | 'search' | 'ai' | 'settings') => void;
+  setActiveActivityTab: (tab: 'explorer' | 'search' | 'ai' | 'settings' | 'collaborators') => void;
   setActiveBottomTab: (tab: 'output' | 'terminal' | 'chat') => void;
   setCursorPosition: (pos: { lineNumber: number; column: number }) => void;
 

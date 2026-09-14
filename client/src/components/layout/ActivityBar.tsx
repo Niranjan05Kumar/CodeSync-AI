@@ -75,16 +75,24 @@ export const ActivityBar: React.FC = () => {
 
       {/* Bottom Stack */}
       <div className="flex flex-col items-center gap-1 w-full">
-        {/* Collaborators online counter */}
-        <div
-          className="relative w-full h-10 flex items-center justify-center text-ide-dim hover:text-ide-text cursor-pointer"
-          title={`${collaborators.length} Collaborators Online`}
+        {/* Collaborators */}
+        <button
+          onClick={() => setActiveActivityTab('collaborators')}
+          className={`relative w-full h-10 flex items-center justify-center transition-colors ${
+            activeActivityTab === 'collaborators' && isSidebarOpen
+              ? 'text-white'
+              : 'text-ide-dim hover:text-ide-text'
+          }`}
+          title={`${collaborators.length} Collaborator(s) Online (Click to view list)`}
         >
+          {activeActivityTab === 'collaborators' && isSidebarOpen && (
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-ide-blue" />
+          )}
           <Users className="w-5 h-5" />
           <span className="absolute top-1 right-2 text-[9px] font-bold bg-ide-blue text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
             {collaborators.length}
           </span>
-        </div>
+        </button>
 
         {/* Settings */}
         <button
