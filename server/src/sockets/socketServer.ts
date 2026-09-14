@@ -10,9 +10,14 @@ export interface AuthenticatedSocketData {
 let ioInstance: SocketIOServer | null = null;
 
 export function initSocketServer(httpServer: HTTPServer): SocketIOServer {
+  const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: '*',
+      origin: process.env.NODE_ENV === 'production' ? allowedOrigins : '*',
       methods: ['GET', 'POST'],
       credentials: true
     },

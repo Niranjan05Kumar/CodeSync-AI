@@ -3,8 +3,8 @@ import { io, Socket } from 'socket.io-client';
 export function getSocketUrl(): string {
   const envUrl = import.meta.env.VITE_SOCKET_URL;
   if (envUrl && envUrl.trim() !== '') {
-    // If accessing from another device (e.g. mobile/tablet on LAN), dynamically replace localhost with current host
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // In local development: if accessing from another device on LAN, replace localhost with current host
+    if (typeof window !== 'undefined' && !import.meta.env.PROD && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       try {
         const url = new URL(envUrl);
         if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {

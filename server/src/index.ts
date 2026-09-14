@@ -12,7 +12,30 @@ import { initSocketServer } from './sockets/socketServer';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
+function validateProductionEnv() {
+  if (process.env.NODE_ENV === 'production') {
+    const issues: string[] = [];
+    if (!process.env.JWT_ACCESS_SECRET || process.env.JWT_ACCESS_SECRET.length < 32 || process.env.JWT_ACCESS_SECRET.includes('fallback')) {
+      issues.push('JWT_ACCESS_SECRET must be set and at least 32 characters long in production');
+    }
+    if (!process.env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET.length < 32 || process.env.JWT_REFRESH_SECRET.includes('fallback')) {
+      issues.push('JWT_REFRESH_SECRET must be set and at least 32 characters long in production');
+    }
+    if (!process.env.DATABASE_URL) {
+      issues.push('DATABASE_URL must be defined');
+    }
+    if (issues.length > 0) {
+      console.error('\n❌ CRITICAL CONFIGURATION ERROR(S) IN PRODUCTION:');
+      issues.forEach((issue) => console.error(`   • ${issue}`));
+      console.error('Please configure the required production environment variables.\n');
+      process.exit(1);
+    }
+  }
+}
+
 async function startServer() {
+  validateProductionEnv();
+
   console.log('\n======================================================');
   console.log('   CodeSync AI - Backend API Server Bootstrapping     ');
   console.log('======================================================\n');

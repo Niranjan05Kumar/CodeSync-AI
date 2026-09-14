@@ -5,6 +5,7 @@ import apiRouter from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { ApiError } from './utils/apiError';
 import { globalRateLimiter } from './middlewares/rateLimiter';
+import { checkDatabaseHealth } from './db/pool';
 
 export function createApp(): Express {
   const app = express();
@@ -54,6 +55,19 @@ export function createApp(): Express {
       next();
     });
   }
+
+  // Mount top-level health checks for cloud deployment platforms (Render, AWS, K8s)
+  app.get('/health', async (_req: Request, res: Response) => {
+    const dbHealth = await checkDatabaseHealth();
+    const isHealthy = dbHealth.ok;
+    return res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'UP' : 'DEGRADED',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      database: dbHealth.ok ? 'connected' : 'disconnected'
+    });
+  });
 
   // Mount API v1 router
   app.use('/api/v1', apiRouter);
