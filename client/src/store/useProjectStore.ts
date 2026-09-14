@@ -22,6 +22,7 @@ interface ProjectState {
   activeFileVersion: number;
   unsavedFileIds: string[];
   isTreeLoading: boolean;
+  isFileLoading: boolean;
   collaborators: Collaborator[];
   chatMessages: ChatMessage[];
 
@@ -69,6 +70,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeFileVersion: 1,
   unsavedFileIds: [],
   isTreeLoading: false,
+  isFileLoading: false,
   collaborators: [],
   chatMessages: [],
 
@@ -292,17 +294,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       });
     }
 
-    set({ activeTabId: file.id });
+    set({ activeTabId: file.id, isFileLoading: true });
 
     // Fetch active content
     try {
       const data = await fileApi.getFileContent(currentProject.id, file.id);
       set({
         activeFileContent: data.file.content,
-        activeFileVersion: data.file.version
+        activeFileVersion: data.file.version,
+        isFileLoading: false
       });
     } catch (err) {
       console.error('[ProjectStore] Failed to fetch file content:', err);
+      set({ isFileLoading: false });
     }
   },
 

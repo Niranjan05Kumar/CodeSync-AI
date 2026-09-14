@@ -19,6 +19,7 @@ export const EditorArea: React.FC = () => {
     activeTabId, 
     activeFileContent, 
     activeFileVersion,
+    isFileLoading,
     updateActiveContent, 
     saveActiveFile,
     collaborators 
@@ -32,17 +33,25 @@ export const EditorArea: React.FC = () => {
   const debounceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isApplyingRemoteRef = useRef(false);
   const isProgrammaticUpdateRef = useRef(true);
+  const isUserTypingRef = useRef(false);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-  // Whenever activeTabId changes (file load / tab switch), mark as programmatic update
+  // Synchronize programmatic state: lock broadcasts until file finishes loading and model matches content
   useEffect(() => {
     isProgrammaticUpdateRef.current = true;
-    const timer = setTimeout(() => {
-      isProgrammaticUpdateRef.current = false;
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [activeTabId]);
+    isUserTypingRef.current = false;
+
+    if (!isFileLoading && editorInstance) {
+      const model = editorInstance.getModel();
+      if (model && model.getValue() === activeFileContent) {
+        const timer = setTimeout(() => {
+          isProgrammaticUpdateRef.current = false;
+        }, 50);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [activeTabId, activeFileContent, isFileLoading, editorInstance]);
 
   // Apply remote collaborator cursor decorations
   useMonacoDecorations(editorInstance, collaborators, activeTabId);
@@ -93,6 +102,14 @@ export const EditorArea: React.FC = () => {
       }
     });
 
+    // Track physical user typing and pasting to differentiate from programmatic updates
+    editor.onKeyDown(() => {
+      isUserTypingRef.current = true;
+    });
+    editor.onDidPaste(() => {
+      isUserTypingRef.current = true;
+    });
+
     // 2. Broadcast local delta changes on model content change
     editor.onDidChangeModelContent((event) => {
       // Never broadcast if changes were applied from a remote peer (prevent echo loop)
@@ -101,12 +118,21 @@ export const EditorArea: React.FC = () => {
       // Never broadcast if changes are from programmatic model loading / tab switching
       if (isProgrammaticUpdateRef.current) return;
 
+      // Never broadcast if file is currently loading from server
+      if (useProjectStore.getState().isFileLoading) return;
+
       // Never broadcast full buffer flushes (model.setValue)
       if (event.isFlush) return;
 
-      // CRITICAL: Only broadcast if the user is actively focused and typing in this editor instance.
-      // This strictly prevents initial file loads or background tab mounts from broadcasting the entire file.
+      // CRITICAL: Only broadcast if triggered by real user typing or pasting
+      if (!isUserTypingRef.current) return;
+      isUserTypingRef.current = false;
+
+      // Only broadcast if the user is actively focused in this editor instance
       if (!editor.hasTextFocus() && !editor.hasWidgetFocus()) return;
+
+      // Prevent accidental broadcasting of full file content
+      if (event.changes.some((c) => c.text.length > 50 && c.text === activeFileContent)) return;
 
       if (activeTab && event.changes && event.changes.length > 0) {
         const monacoChanges: MonacoChange[] = event.changes.map((c) => ({
@@ -177,6 +203,19 @@ export const EditorArea: React.FC = () => {
         const model = editorInstance.getModel();
         if (!model) return;
 
+        // Guard against duplicate full-file insertion from peer loading events
+        const currentVal = model.getValue();
+        const isDuplicateFullFile = data.changes.some((c) => {
+          const trimmedText = c.text.trim();
+          if (trimmedText.length < 30) return false;
+          return currentVal.trim() === trimmedText || (currentVal.length > 0 && currentVal.includes(trimmedText));
+        });
+
+        if (isDuplicateFullFile) {
+          console.warn('[EditorArea] Suppressed duplicate full-file edit broadcast from peer:', data.senderId);
+          return;
+        }
+
         isApplyingRemoteRef.current = true;
         try {
           const edits = data.changes.map((c) => ({
@@ -215,7 +254,7 @@ export const EditorArea: React.FC = () => {
 
   // Handle local typing with 1.5s debounced database persistence
   const handleEditorChange = useCallback((value: string | undefined) => {
-    if (isApplyingRemoteRef.current || isProgrammaticUpdateRef.current) return;
+    if (isApplyingRemoteRef.current || isProgrammaticUpdateRef.current || useProjectStore.getState().isFileLoading) return;
 
     const text = value ?? '';
     updateActiveContent(text);
