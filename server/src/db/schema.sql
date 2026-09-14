@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
+    room_code VARCHAR(12) UNIQUE,
     description TEXT,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     is_public BOOLEAN DEFAULT FALSE,
@@ -45,7 +46,14 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS room_code VARCHAR(12) UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_projects_room_code ON projects(room_code);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
+
+-- Ensure existing projects have an 8-character uppercase room_code
+UPDATE projects 
+SET room_code = UPPER(SUBSTRING(REPLACE(id::text, '-', ''), 1, 8))
+WHERE room_code IS NULL;
 
 -- 5. Project Members Table (RBAC)
 CREATE TABLE IF NOT EXISTS project_members (

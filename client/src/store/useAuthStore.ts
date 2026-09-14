@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { User, AuthTokens } from '../types';
 import { authApi } from '../api/authApi';
 import { useProjectStore } from './useProjectStore';
+import { useUIStore } from './useUIStore';
 import { updateSocketAuthToken, disconnectSocket } from '../sockets/socketClient';
 
 interface AuthState {
@@ -43,8 +44,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isLoading: false
     });
     updateSocketAuthToken(tokens.accessToken);
-    // Immediately fetch projects & files for the newly authenticated user
-    useProjectStore.getState().fetchProjects();
+    
+    // Check if there is a pending room join from invite link or join action
+    const pendingRoom = sessionStorage.getItem('pending_join_room');
+    if (pendingRoom) {
+      sessionStorage.removeItem('pending_join_room');
+      useProjectStore.getState().joinRoom(pendingRoom).then((p) => {
+        useUIStore.getState().showToast(`Joined room "${p.name}" (${p.roomCode || ''})`, 'success');
+      }).catch((err) => {
+        console.warn('Failed to auto-join pending room:', err);
+        useProjectStore.getState().fetchProjects();
+      });
+    } else {
+      // Immediately fetch projects & files for the newly authenticated user
+      useProjectStore.getState().fetchProjects();
+    }
   },
 
   logout: () => {
@@ -76,8 +90,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false
       });
-      // Fetch projects once authentication is confirmed
-      useProjectStore.getState().fetchProjects();
+      
+      const pendingRoom = sessionStorage.getItem('pending_join_room');
+      if (pendingRoom) {
+        sessionStorage.removeItem('pending_join_room');
+        useProjectStore.getState().joinRoom(pendingRoom).then((p) => {
+          useUIStore.getState().showToast(`Joined room "${p.name}" (${p.roomCode || ''})`, 'success');
+        }).catch(() => {
+          useProjectStore.getState().fetchProjects();
+        });
+      } else {
+        // Fetch projects once authentication is confirmed
+        useProjectStore.getState().fetchProjects();
+      }
     } catch {
       localStorage.removeItem('codesync_access_token');
       localStorage.removeItem('codesync_refresh_token');

@@ -53,6 +53,9 @@ interface ProjectState {
   addChatMessage: (msg: ChatMessage) => void;
   clearChatMessages: () => void;
   deleteChatMessage: (messageId: string) => void;
+  joinRoom: (roomCodeOrUrl: string) => Promise<Project>;
+  inviteMember: (emailOrUsername: string, role?: 'editor' | 'viewer') => Promise<any>;
+  removeMember: (userId: string) => Promise<void>;
   resetProjectStore: () => void;
 }
 
@@ -129,6 +132,54 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   deleteChatMessage: (messageId) => set((s) => ({
     chatMessages: s.chatMessages.filter((m) => m.id !== messageId)
   })),
+
+  joinRoom: async (roomCodeOrUrl: string) => {
+    let cleanCode = roomCodeOrUrl.trim();
+
+    // If full URL was pasted, extract room parameter or path
+    if (cleanCode.includes('?room=')) {
+      const match = cleanCode.match(/[?&]room=([^&#]+)/);
+      if (match && match[1]) {
+        cleanCode = match[1];
+      }
+    } else if (cleanCode.includes('/')) {
+      const parts = cleanCode.split('/');
+      cleanCode = parts[parts.length - 1];
+    }
+
+    cleanCode = cleanCode.trim().toUpperCase();
+
+    const res = await projectApi.joinProject(cleanCode);
+    const joinedProject = res.project;
+
+    // Update project list
+    const currentList = get().projects;
+    const exists = currentList.some((p) => p.id === joinedProject.id);
+    if (!exists) {
+      set({ projects: [joinedProject, ...currentList] });
+    } else {
+      set({
+        projects: currentList.map((p) => (p.id === joinedProject.id ? { ...p, ...joinedProject } : p))
+      });
+    }
+
+    // Immediately select the joined project to mount files and join the Socket.IO room
+    await get().selectProject(joinedProject);
+    return joinedProject;
+  },
+
+  inviteMember: async (emailOrUsername: string, role: 'editor' | 'viewer' = 'editor') => {
+    const proj = get().currentProject;
+    if (!proj) throw new Error('No active project selected');
+    const res = await projectApi.inviteMember(proj.id, emailOrUsername, role);
+    return res.member;
+  },
+
+  removeMember: async (userId: string) => {
+    const proj = get().currentProject;
+    if (!proj) throw new Error('No active project selected');
+    await projectApi.removeMember(proj.id, userId);
+  },
 
   resetProjectStore: () => {
     set({

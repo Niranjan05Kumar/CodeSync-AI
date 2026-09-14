@@ -9,7 +9,9 @@ import {
   User as UserIcon,
   LogOut,
   Loader2,
-  Trash2
+  Trash2,
+  DoorOpen,
+  Share2
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -20,6 +22,8 @@ export const TopBar: React.FC = () => {
     setQuickOpenOpen, 
     setCreateProjectOpen, 
     setAuthModalOpen,
+    setJoinRoomOpen,
+    setInviteModalOpen,
     isAiPanelOpen,
     toggleAiPanel,
     showConfirm,
@@ -85,9 +89,22 @@ export const TopBar: React.FC = () => {
     }
   };
 
+  const handleOpenJoinRoom = () => {
+    if (!isAuthenticated) {
+      showToast('Please log in or create an account to join a room', 'warning');
+      setAuthModalOpen(true);
+      return;
+    }
+    setJoinRoomOpen(true);
+  };
+
+  const roomCode = currentProject
+    ? (currentProject.roomCode || currentProject.room_code || currentProject.id.slice(0, 8).toUpperCase())
+    : '';
+
   return (
     <header className="h-10 bg-ide-sidebar border-b border-ide-border px-3 flex items-center justify-between text-ide-base select-none z-30">
-      {/* Left Section: Branding, Project Picker & Quick Search */}
+      {/* Left Section: Branding, Project Picker, Room Code & Quick Search */}
       <div className="flex items-center gap-3">
         {/* Brand */}
         <div className="flex items-center gap-1.5 font-semibold text-white tracking-wide">
@@ -162,26 +179,58 @@ export const TopBar: React.FC = () => {
                 )}
               </div>
 
-              <div className="border-t border-ide-border p-1">
+              <div className="border-t border-ide-border p-1 flex items-center gap-1">
                 <button
                   onClick={() => {
                     setIsProjectDropdownOpen(false);
                     setCreateProjectOpen(true);
                   }}
-                  className="w-full h-6 px-2 text-ide-xs text-ide-blue hover:bg-[#2a2d2e] rounded flex items-center gap-1 font-medium"
+                  className="flex-1 h-6 px-2 text-ide-xs text-ide-blue hover:bg-[#2a2d2e] rounded flex items-center justify-center gap-1 font-medium"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>New Project</span>
+                  <span>New</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsProjectDropdownOpen(false);
+                    handleOpenJoinRoom();
+                  }}
+                  className="flex-1 h-6 px-2 text-ide-xs text-ide-text hover:text-white hover:bg-[#2a2d2e] rounded flex items-center justify-center gap-1 font-medium"
+                >
+                  <DoorOpen className="w-3.5 h-3.5 text-ide-blue" />
+                  <span>Join Room</span>
                 </button>
               </div>
             </div>
           )}
         </div>
 
+        {/* Join Room Quick Button */}
+        <button
+          onClick={handleOpenJoinRoom}
+          className="h-7 px-2.5 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded flex items-center gap-1.5 transition-colors text-ide-xs font-medium"
+          title="Join a room with an 8-character Room ID"
+        >
+          <DoorOpen className="w-3.5 h-3.5 text-ide-blue" />
+          <span className="hidden sm:inline">Join Room</span>
+        </button>
+
+        {/* Active 8-Character Room ID Badge */}
+        {currentProject && (
+          <button
+            onClick={() => setInviteModalOpen(true)}
+            className="hidden xl:flex items-center gap-1.5 h-7 px-2.5 bg-ide-activity border border-ide-border hover:border-ide-blue rounded text-ide-xs text-ide-muted hover:text-white transition-colors"
+            title="Click to copy 8-character Room ID or share with collaborators"
+          >
+            <span className="text-[10px] text-ide-muted uppercase font-semibold">Room:</span>
+            <span className="font-mono text-white font-bold tracking-widest">{roomCode}</span>
+          </button>
+        )}
+
         {/* Quick Open Search Button */}
         <button
           onClick={() => setQuickOpenOpen(true)}
-          className="hidden sm:flex items-center gap-2 h-7 px-2.5 bg-ide-activity hover:border-ide-focus border border-ide-border rounded text-ide-muted hover:text-ide-text transition-colors w-48 md:w-60"
+          className="hidden sm:flex items-center gap-2 h-7 px-2.5 bg-ide-activity hover:border-ide-focus border border-ide-border rounded text-ide-muted hover:text-ide-text transition-colors w-40 md:w-52"
         >
           <Search className="w-3.5 h-3.5" />
           <span className="text-ide-xs truncate">Search files (Ctrl + P)</span>
@@ -211,14 +260,30 @@ export const TopBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Right Section: Collaborator Presence, AI Toggle & Auth Profile */}
-      <div className="flex items-center gap-3">
+      {/* Right Section: Share Button, Collaborator Presence, AI Toggle & Auth Profile */}
+      <div className="flex items-center gap-2.5">
+        {/* Share / Invite Button (when a project is open) */}
+        {currentProject && (
+          <button
+            onClick={() => setInviteModalOpen(true)}
+            className="h-7 px-2.5 bg-ide-blue/15 hover:bg-ide-blue/25 text-ide-blue border border-ide-blue/30 rounded flex items-center gap-1.5 text-ide-xs font-medium transition-colors"
+            title="Share 8-Character Room ID & Invite Collaborators"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Share</span>
+          </button>
+        )}
+
         {/* Collaborators Avatar Stack */}
-        <div className="flex items-center -space-x-1.5">
+        <div 
+          onClick={() => currentProject && setInviteModalOpen(true)}
+          className="flex items-center -space-x-1.5 cursor-pointer"
+          title="Click to view room collaborators"
+        >
           {collaborators.map((c) => (
             <div
               key={c.id}
-              className="w-6 h-6 rounded-full flex items-center justify-center text-ide-xs font-bold text-white border border-ide-sidebar cursor-pointer"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-ide-xs font-bold text-white border border-ide-sidebar hover:scale-110 transition-transform"
               style={{ backgroundColor: c.color }}
               title={`${c.username} (Online)`}
             >

@@ -1,7 +1,22 @@
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { pool } from '../db/pool';
 import { ApiError } from '../utils/apiError';
 import { CreateProjectInput } from '../validations/projectValidation';
+
+/**
+ * Generate an unambiguous 8-character alphanumeric room code
+ * e.g. "H7N9P2Q4", "K3X8M2W9"
+ */
+export function generateRoomCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  const bytes = crypto.randomBytes(8);
+  for (let i = 0; i < 8; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
+}
 
 /**
  * Create a new project with starter files
@@ -18,12 +33,14 @@ export async function createProject(req: Request<{}, {}, CreateProjectInput>, re
   try {
     await client.query('BEGIN;');
 
-    // 1. Create Project Record
+    const roomCode = generateRoomCode();
+
+    // 1. Create Project Record with 8-character room_code
     const projectRes = await client.query(`
-      INSERT INTO projects (name, description, owner_id, is_public)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, name, description, owner_id, is_public, created_at, updated_at;
-    `, [name, description || null, req.user.id, isPublic || false]);
+      INSERT INTO projects (name, room_code, description, owner_id, is_public)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, room_code, description, owner_id, is_public, created_at, updated_at;
+    `, [name, roomCode, description || null, req.user.id, isPublic || false]);
 
     const project = projectRes.rows[0];
 
@@ -83,6 +100,7 @@ export async function createProject(req: Request<{}, {}, CreateProjectInput>, re
       data: {
         project: {
           ...project,
+          roomCode: project.room_code || project.id.slice(0, 8).toUpperCase(),
           role: 'owner',
           memberCount: 1
         }
@@ -110,6 +128,7 @@ export async function getProjects(req: Request, res: Response, next: NextFunctio
       SELECT 
         p.id,
         p.name,
+        p.room_code,
         p.description,
         p.owner_id,
         p.is_public,
@@ -125,10 +144,15 @@ export async function getProjects(req: Request, res: Response, next: NextFunctio
       ORDER BY p.updated_at DESC;
     `, [req.user.id]);
 
+    const mappedProjects = projectsRes.rows.map(row => ({
+      ...row,
+      roomCode: row.room_code || row.id.slice(0, 8).toUpperCase()
+    }));
+
     return res.status(200).json({
       success: true,
       data: {
-        projects: projectsRes.rows
+        projects: mappedProjects
       }
     });
   } catch (error) {
@@ -148,6 +172,7 @@ export async function getProjectById(req: Request, res: Response, next: NextFunc
       SELECT 
         p.id,
         p.name,
+        p.room_code,
         p.description,
         p.owner_id,
         p.is_public,
@@ -185,9 +210,191 @@ export async function getProjectById(req: Request, res: Response, next: NextFunc
       data: {
         project: {
           ...project,
+          roomCode: project.room_code || project.id.slice(0, 8).toUpperCase(),
           members: membersRes.rows,
           userRole: req.projectMember?.role || 'viewer'
         }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Join a project room by 8-character roomCode (or project id)
+ * POST /api/v1/projects/join
+ */
+export async function joinProject(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(ApiError.unauthorized('Authentication required. Please log in to join a room.', 'AUTH_REQUIRED'));
+  }
+
+  const { roomCode, projectId } = req.body;
+  const inputCode = (roomCode || projectId || req.params.id || '').toString().trim();
+
+  if (!inputCode) {
+    return next(ApiError.badRequest('8-character Room ID or code is required', 'ROOM_CODE_REQUIRED'));
+  }
+
+  try {
+    // Look up project by 8-character room_code, UUID, or first 8 chars of UUID
+    const projectRes = await pool.query(`
+      SELECT 
+        p.id,
+        p.name,
+        p.room_code,
+        p.description,
+        p.owner_id,
+        p.is_public,
+        p.created_at,
+        p.updated_at,
+        u.username AS owner_username,
+        (SELECT COUNT(*)::int FROM project_members WHERE project_id = p.id) AS member_count
+      FROM projects p
+      JOIN users u ON p.owner_id = u.id
+      WHERE UPPER(p.room_code) = UPPER($1) 
+         OR p.id::text = $1
+         OR UPPER(SUBSTRING(REPLACE(p.id::text, '-', ''), 1, 8)) = UPPER($1);
+    `, [inputCode]);
+
+    if (projectRes.rows.length === 0) {
+      throw ApiError.notFound(`No room found with ID "${inputCode}". Please verify the 8-character code.`, 'ROOM_NOT_FOUND');
+    }
+
+    const project = projectRes.rows[0];
+
+    // Check if user is already a member
+    const existingMember = await pool.query(`
+      SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2;
+    `, [project.id, req.user.id]);
+
+    let userRole = 'editor';
+    let isNewMember = false;
+
+    if (existingMember.rows.length > 0) {
+      userRole = existingMember.rows[0].role;
+    } else {
+      isNewMember = true;
+      // Add user as editor
+      await pool.query(`
+        INSERT INTO project_members (project_id, user_id, role)
+        VALUES ($1, $2, 'editor')
+        ON CONFLICT (project_id, user_id) DO NOTHING;
+      `, [project.id, req.user.id]);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        project: {
+          ...project,
+          roomCode: project.room_code || project.id.slice(0, 8).toUpperCase(),
+          role: userRole,
+          memberCount: project.member_count + (isNewMember ? 1 : 0)
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Invite a collaborator to the project by username or email
+ * POST /api/v1/projects/:id/members
+ */
+export async function addProjectMember(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(ApiError.unauthorized('Authentication required', 'AUTH_REQUIRED'));
+  }
+
+  const { id } = req.params;
+  const { emailOrUsername, role = 'editor' } = req.body;
+
+  if (!emailOrUsername || !emailOrUsername.trim()) {
+    return next(ApiError.badRequest('Username or email is required', 'IDENTIFIER_REQUIRED'));
+  }
+
+  try {
+    // Find target user by username or email
+    const userRes = await pool.query(`
+      SELECT id, username, email, avatar_url 
+      FROM users 
+      WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1);
+    `, [emailOrUsername.trim()]);
+
+    if (userRes.rows.length === 0) {
+      throw ApiError.notFound(`User "${emailOrUsername}" not found.`, 'USER_NOT_FOUND');
+    }
+
+    const targetUser = userRes.rows[0];
+
+    // Upsert into project_members
+    const memberRes = await pool.query(`
+      INSERT INTO project_members (project_id, user_id, role)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (project_id, user_id) DO UPDATE 
+        SET role = EXCLUDED.role, joined_at = CURRENT_TIMESTAMP
+      RETURNING role, joined_at;
+    `, [id, targetUser.id, role]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        member: {
+          userId: targetUser.id,
+          username: targetUser.username,
+          email: targetUser.email,
+          avatarUrl: targetUser.avatar_url,
+          role: memberRes.rows[0].role,
+          joinedAt: memberRes.rows[0].joined_at
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Remove a collaborator from project
+ * DELETE /api/v1/projects/:id/members/:userId
+ */
+export async function removeProjectMember(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(ApiError.unauthorized('Authentication required', 'AUTH_REQUIRED'));
+  }
+
+  const { id, userId } = req.params;
+
+  try {
+    // Check that caller is project owner
+    const projectRes = await pool.query(`
+      SELECT owner_id FROM projects WHERE id = $1;
+    `, [id]);
+
+    if (projectRes.rows.length === 0) {
+      throw ApiError.notFound('Project not found', 'PROJECT_NOT_FOUND');
+    }
+
+    if (projectRes.rows[0].owner_id !== req.user.id) {
+      throw ApiError.forbidden('Only the project owner can remove members', 'OWNER_REQUIRED');
+    }
+
+    if (projectRes.rows[0].owner_id === userId) {
+      throw ApiError.badRequest('Cannot remove the project owner', 'CANNOT_REMOVE_OWNER');
+    }
+
+    await pool.query(`
+      DELETE FROM project_members WHERE project_id = $1 AND user_id = $2;
+    `, [id, userId]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: 'Member successfully removed from project',
+        removedUserId: userId
       }
     });
   } catch (error) {

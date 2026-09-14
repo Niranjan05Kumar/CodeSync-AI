@@ -9,6 +9,8 @@ import { BottomDock } from '../dock/BottomDock';
 import { AIAssistantSidebar } from '../ai/AIAssistantSidebar';
 import { QuickOpenModal } from '../modals/QuickOpenModal';
 import { CreateProjectModal } from '../modals/CreateProjectModal';
+import { JoinRoomModal } from '../modals/JoinRoomModal';
+import { InviteModal } from '../modals/InviteModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { AuthModal } from '../auth/AuthModal';
 import { NotificationToast } from './NotificationToast';
@@ -123,6 +125,8 @@ export const AppLayout: React.FC = () => {
       {/* 4. Global Modals & Notifications */}
       <QuickOpenModal />
       <CreateProjectModal />
+      <JoinRoomModal />
+      <InviteModal />
       <ConfirmModal />
       <AuthModal />
       <NotificationToast />

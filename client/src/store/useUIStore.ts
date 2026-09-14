@@ -36,6 +36,8 @@ export interface UIState {
   isQuickOpenOpen: boolean;
   isCreateProjectOpen: boolean;
   isAuthModalOpen: boolean;
+  isJoinRoomOpen: boolean;
+  isInviteModalOpen: boolean;
 
   // Custom Confirmation Dialog & Toasts
   confirmDialog: ConfirmDialogOptions | null;
@@ -60,6 +62,8 @@ export interface UIState {
   setQuickOpenOpen: (open: boolean) => void;
   setCreateProjectOpen: (open: boolean) => void;
   setAuthModalOpen: (open: boolean) => void;
+  setJoinRoomOpen: (open: boolean) => void;
+  setInviteModalOpen: (open: boolean) => void;
 
   showConfirm: (options: Omit<ConfirmDialogOptions, 'resolve'>) => Promise<boolean>;
   closeConfirm: (result: boolean) => void;
@@ -84,6 +88,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   isQuickOpenOpen: false,
   isCreateProjectOpen: false,
   isAuthModalOpen: false,
+  isJoinRoomOpen: false,
+  isInviteModalOpen: false,
 
   confirmDialog: null,
   toasts: [],
@@ -115,6 +121,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   setQuickOpenOpen: (open) => set({ isQuickOpenOpen: open }),
   setCreateProjectOpen: (open) => set({ isCreateProjectOpen: open }),
   setAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+  setJoinRoomOpen: (open) => set({ isJoinRoomOpen: open }),
+  setInviteModalOpen: (open) => set({ isInviteModalOpen: open }),
 
   showConfirm: (options) => {
     return new Promise<boolean>((resolve) => {

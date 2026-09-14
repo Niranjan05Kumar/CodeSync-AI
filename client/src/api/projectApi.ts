@@ -25,5 +25,25 @@ export const projectApi = {
     return request<{ message: string; deletedId: string }>(`/projects/${id}`, {
       method: 'DELETE'
     });
+  },
+
+  joinProject: (roomCode: string) => {
+    return request<{ project: Project }>('/projects/join', {
+      method: 'POST',
+      body: JSON.stringify({ roomCode })
+    });
+  },
+
+  inviteMember: (projectId: string, emailOrUsername: string, role: 'editor' | 'viewer' = 'editor') => {
+    return request<{ member: any }>(`/projects/${projectId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ emailOrUsername, role })
+    });
+  },
+
+  removeMember: (projectId: string, userId: string) => {
+    return request<{ message: string; removedUserId: string }>(`/projects/${projectId}/members/${userId}`, {
+      method: 'DELETE'
+    });
   }
 };

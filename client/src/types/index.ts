@@ -14,6 +14,8 @@ export interface AuthTokens {
 export interface Project {
   id: string;
   name: string;
+  roomCode?: string;
+  room_code?: string;
   description?: string | null;
   owner_id: string;
   owner_username?: string;
@@ -22,6 +24,15 @@ export interface Project {
   member_count?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectMember {
+  userId: string;
+  username: string;
+  email: string;
+  avatarUrl?: string | null;
+  role: 'owner' | 'editor' | 'viewer';
+  joinedAt?: string;
 }
 
 export interface FileTreeNode {

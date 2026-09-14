@@ -22,8 +22,34 @@ export const App: React.FC = () => {
     // 1. Initialize authentication from localStorage
     initAuth();
 
-    // 2. Fetch projects
-    fetchProjects();
+    // 2. Detect ?room= query parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+
+    if (roomParam) {
+      const cleanRoom = roomParam.trim().toUpperCase();
+      // Clean query string from browser URL bar without page reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      const hasAuthToken = localStorage.getItem('codesync_access_token');
+      if (hasAuthToken) {
+        // Authenticated user: automatically join room
+        useProjectStore.getState().joinRoom(cleanRoom).then((p) => {
+          useUIStore.getState().showToast(`Joined room "${p.name}" (${p.roomCode || cleanRoom})`, 'success');
+        }).catch((err) => {
+          useUIStore.getState().showToast(err.message || 'Failed to join room', 'error');
+          fetchProjects();
+        });
+      } else {
+        // Unauthenticated user: store pending room and prompt sign in
+        sessionStorage.setItem('pending_join_room', cleanRoom);
+        useUIStore.getState().setAuthModalOpen(true);
+        useUIStore.getState().showToast(`Please sign in or register to join room ${cleanRoom}`, 'info');
+      }
+    } else {
+      // 3. Normal startup: Fetch existing user projects
+      fetchProjects();
+    }
 
     // 3. Global keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
