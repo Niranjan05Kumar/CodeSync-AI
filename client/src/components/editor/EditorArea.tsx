@@ -133,6 +133,27 @@ export const EditorArea: React.FC = () => {
       saveActiveFile();
     });
 
+    // 4. Register Ctrl+Enter / Cmd+Enter run hotkey in Monaco
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      const currentVal = editor.getValue();
+      useProjectStore.getState().updateActiveContent(currentVal);
+      useProjectStore.getState().runActiveFile();
+    });
+
+    // 5. Register "Run Code" in Monaco context menu and Command Palette
+    editor.addAction({
+      id: 'codesync-run-code',
+      label: 'Run Code',
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.5,
+      run: (ed) => {
+        const currentVal = ed.getValue();
+        useProjectStore.getState().updateActiveContent(currentVal);
+        useProjectStore.getState().runActiveFile();
+      }
+    });
+
     // Set focus to the editor
     editor.focus();
   };

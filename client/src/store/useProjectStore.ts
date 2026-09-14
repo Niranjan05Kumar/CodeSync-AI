@@ -413,8 +413,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { currentProject, openTabs, activeTabId, activeFileContent, isExecuting } = get();
     if (isExecuting) return;
 
-    // Switch BottomDock to OUTPUT tab
+    // Switch BottomDock to OUTPUT tab and ensure panel is open
     useUIStore.getState().setActiveBottomTab('output');
+    useUIStore.getState().setBottomPanelOpen(true);
 
     if (!currentProject) {
       set((s) => ({
@@ -477,7 +478,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const res = await executionApi.execute({
         projectId: currentProject.id,
         language,
-        code: activeFileContent
+        code: get().activeFileContent
       });
 
       // Handle both unwrapped and wrapped ExecutionResult structures

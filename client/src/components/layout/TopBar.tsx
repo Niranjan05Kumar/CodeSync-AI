@@ -46,13 +46,19 @@ export const TopBar: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter')) {
+        const target = e.target as HTMLElement | null;
+        // Ignore if user is inside a standard single-line form input (e.g. rename, search modal)
+        if (target && target.tagName === 'INPUT' && !target.classList.contains('inputarea')) {
+          return;
+        }
         e.preventDefault();
+        e.stopPropagation();
         runActiveFile();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [runActiveFile]);
 
   const handleDeleteProject = async (proj: { id: string; name: string }) => {

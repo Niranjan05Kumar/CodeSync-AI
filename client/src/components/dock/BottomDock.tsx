@@ -34,7 +34,8 @@ export const BottomDock: React.FC = () => {
     isExecuting,
     clearExecutionOutput,
     clearChatMessages,
-    deleteChatMessage
+    deleteChatMessage,
+    runActiveFile
   } = useProjectStore();
   const { broadcastChatMessage } = useSocketActions();
 
@@ -118,6 +119,9 @@ export const BottomDock: React.FC = () => {
       newHistory.push('Linux codesync-sandbox 6.1.0-docker x86_64 GNU/Linux');
     } else if (cmd === 'ls') {
       newHistory.push('main.py  package.json  README.md  src/');
+    } else if (cmd === 'run') {
+      runActiveFile();
+      newHistory.push('Executing active file in Docker sandbox...');
     } else {
       newHistory.push(`bash: ${cmd}: command not found in sandbox`);
     }
@@ -252,7 +256,20 @@ export const BottomDock: React.FC = () => {
             {!isExecuting && (
               <div className="pt-2 text-ide-dim text-ide-xs flex items-center gap-1.5 border-t border-ide-border/20 mt-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-ide-green shrink-0" />
-                <span>Ready for code execution (Press Ctrl+Enter or click Run).</span>
+                <span>
+                  Ready for code execution (Press{' '}
+                  <kbd className="px-1 py-0.5 bg-[#252526] text-white rounded border border-ide-border font-mono text-[10px]">
+                    Ctrl+Enter
+                  </kbd>{' '}
+                  or{' '}
+                  <button
+                    onClick={() => runActiveFile()}
+                    className="text-ide-blue hover:text-ide-blueHover underline cursor-pointer"
+                  >
+                    click Run
+                  </button>
+                  ).
+                </span>
               </div>
             )}
           </div>
