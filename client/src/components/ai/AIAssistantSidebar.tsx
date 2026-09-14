@@ -73,6 +73,45 @@ export const AIAssistantSidebar: React.FC = () => {
 
   const currentTab = openTabs.find((t) => t.id === activeTabId);
 
+  // Load saved AI chat history from PostgreSQL for active project
+  useEffect(() => {
+    if (!currentProject) {
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Hello! I am your CodeSync AI pair programmer. Ask me anything about your project, or select a quick action below.'
+        }
+      ]);
+      return;
+    }
+
+    let isMounted = true;
+    aiApi.getChatHistory(currentProject.id)
+      .then((res) => {
+        if (isMounted && res.messages && res.messages.length > 0) {
+          const formatted: ChatMessage[] = res.messages.map((m: any) => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content
+          }));
+          setMessages(formatted);
+        } else if (isMounted) {
+          setMessages([
+            {
+              role: 'assistant',
+              content: `Hello! I am your CodeSync AI assistant for project "${currentProject.name}". Ask me anything or select an action below.`
+            }
+          ]);
+        }
+      })
+      .catch((err) => {
+        console.warn('[AI Assistant] Failed to load saved chat history from DB:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProject?.id]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
@@ -97,6 +136,7 @@ export const AIAssistantSidebar: React.FC = () => {
 
     const abortFn = aiApi.streamChat(
       {
+        projectId: currentProject?.id,
         messages: updatedMessages,
         activeFile: currentTab ? {
           path: currentTab.path || currentTab.name,
@@ -146,7 +186,7 @@ export const AIAssistantSidebar: React.FC = () => {
     updateActiveContent(code);
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     if (messages.length <= 1 && !inputPrompt) return;
 
     if (abortChatRef.current) {
@@ -155,14 +195,24 @@ export const AIAssistantSidebar: React.FC = () => {
       setIsStreaming(false);
     }
 
+    if (currentProject) {
+      try {
+        await aiApi.clearChatHistory(currentProject.id);
+        showToast('AI chat history cleared from database', 'info');
+      } catch (err: any) {
+        console.warn('Failed to clear chat history in DB:', err);
+      }
+    }
+
     setMessages([
       {
         role: 'assistant',
-        content: 'Hello! I am your CodeSync AI pair programmer. Ask me anything about your project, or select a quick action below.'
+        content: currentProject
+          ? `Chat history cleared. How can I help you with "${currentProject.name}"?`
+          : 'Chat history cleared. How can I help you with your code?'
       }
     ]);
     setInputPrompt('');
-    showToast('AI conversation reset', 'info');
   };
 
   const handleDeleteMessage = (index: number) => {

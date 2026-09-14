@@ -12,7 +12,7 @@ import {
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProjectStore } from '../../store/useProjectStore';
-import { useSocketSync } from '../../hooks/useSocketSync';
+import { useSocketActions } from '../../hooks/useSocketSync';
 import { getSocket } from '../../sockets/socketClient';
 
 export const BottomDock: React.FC = () => {
@@ -36,7 +36,7 @@ export const BottomDock: React.FC = () => {
     clearChatMessages,
     deleteChatMessage
   } = useProjectStore();
-  const { broadcastChatMessage } = useSocketSync();
+  const { broadcastChatMessage } = useSocketActions();
 
   const [isMaximized, setIsMaximized] = useState(false);
 

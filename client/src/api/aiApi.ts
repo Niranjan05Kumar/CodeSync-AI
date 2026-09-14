@@ -69,6 +69,7 @@ export const aiApi = {
 
   streamChat: (
     payload: {
+      projectId?: string;
       messages: ChatMessage[];
       activeFile?: { path: string; content: string; language: string };
     },
@@ -139,5 +140,17 @@ export const aiApi = {
       });
 
     return () => controller.abort();
+  },
+
+  getChatHistory: (projectId: string) => {
+    return request<{ messages: ChatMessage[] }>(`/ai/conversations/${projectId}`, {
+      method: 'GET'
+    });
+  },
+
+  clearChatHistory: (projectId: string) => {
+    return request<{ message: string }>(`/ai/conversations/${projectId}`, {
+      method: 'DELETE'
+    });
   }
 };

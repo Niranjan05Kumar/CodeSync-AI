@@ -20,6 +20,7 @@ export const explainCodeSchema = z.object({
 });
 
 export const chatCodeSchema = z.object({
+  projectId: z.string().uuid().optional(),
   messages: z.array(
     z.object({
       role: z.enum(['user', 'assistant', 'system']),

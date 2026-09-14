@@ -123,9 +123,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setChatMessages: (chatMessages) => set({ chatMessages }),
 
-  addChatMessage: (msg) => set((s) => ({
-    chatMessages: [...s.chatMessages, msg]
-  })),
+  addChatMessage: (msg) => set((s) => {
+    if (msg.id && s.chatMessages.some((m) => m.id === msg.id)) {
+      return s;
+    }
+    return { chatMessages: [...s.chatMessages, msg] };
+  }),
 
   clearChatMessages: () => set({ chatMessages: [] }),
 

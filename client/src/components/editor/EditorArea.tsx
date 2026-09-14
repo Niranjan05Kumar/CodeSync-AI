@@ -5,7 +5,7 @@ import { Code2, Command, FileText, FolderPlus, Terminal, Loader2 } from 'lucide-
 import { useProjectStore } from '../../store/useProjectStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useSocketSync } from '../../hooks/useSocketSync';
+import { useSocketActions } from '../../hooks/useSocketSync';
 import { getSocket } from '../../sockets/socketClient';
 import { EditorTabs } from './EditorTabs';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -26,7 +26,7 @@ export const EditorArea: React.FC = () => {
 
   const { user } = useAuthStore();
   const { setQuickOpenOpen, setCreateProjectOpen, setCursorPosition } = useUIStore();
-  const { broadcastCursorMove, broadcastDeltaChange } = useSocketSync();
+  const { broadcastCursorMove, broadcastDeltaChange } = useSocketActions();
 
   const [editorInstance, setEditorInstance] = useState<MonacoEditorType.IStandaloneCodeEditor | null>(null);
   const debounceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

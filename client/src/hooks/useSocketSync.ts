@@ -4,6 +4,59 @@ import { useProjectStore } from '../store/useProjectStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { MonacoChange, ChatMessage } from '../types';
 
+/**
+ * Hook for dispatching socket actions (cursor, deltas, chat) across components
+ * WITHOUT attaching duplicate room listeners.
+ */
+export function useSocketActions() {
+  const { currentProject } = useProjectStore();
+
+  const broadcastCursorMove = useCallback((fileId: string, position: { lineNumber: number; column: number }) => {
+    if (!currentProject) return;
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit('cursor:move', {
+        projectId: currentProject.id,
+        fileId,
+        position
+      });
+    }
+  }, [currentProject?.id]);
+
+  const broadcastDeltaChange = useCallback((fileId: string, changes: MonacoChange[], version: number) => {
+    if (!currentProject) return;
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit('editor:change', {
+        projectId: currentProject.id,
+        fileId,
+        changes,
+        version
+      });
+    }
+  }, [currentProject?.id]);
+
+  const broadcastChatMessage = useCallback((message: string) => {
+    if (!currentProject || !message.trim()) return;
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit('chat:send', {
+        projectId: currentProject.id,
+        message: message.trim()
+      });
+    }
+  }, [currentProject?.id]);
+
+  return {
+    broadcastCursorMove,
+    broadcastDeltaChange,
+    broadcastChatMessage
+  };
+}
+
+/**
+ * Master sync hook: attached ONCE at the App root level to listen for incoming room events.
+ */
 export function useSocketSync() {
   const { 
     currentProject, 
@@ -120,50 +173,7 @@ export function useSocketSync() {
       socket.off('chat:cleared', handleChatCleared);
       socket.off('chat:deleted', handleChatDeleted);
     };
-  }, [currentProject?.id, accessToken, user?.id, setCollaborators, updateCollaboratorCursor, removeCollaborator, setChatMessages, addChatMessage, clearChatMessages, deleteChatMessage]);
+  }, [currentProject?.id, accessToken, user?.id]);
 
-  // Broadcast cursor movement
-  const broadcastCursorMove = useCallback((fileId: string, position: { lineNumber: number; column: number }) => {
-    if (!currentProject) return;
-    const socket = getSocket();
-    if (socket.connected) {
-      socket.emit('cursor:move', {
-        projectId: currentProject.id,
-        fileId,
-        position
-      });
-    }
-  }, [currentProject]);
-
-  // Broadcast Monaco delta changes
-  const broadcastDeltaChange = useCallback((fileId: string, changes: MonacoChange[], version: number) => {
-    if (!currentProject) return;
-    const socket = getSocket();
-    if (socket.connected) {
-      socket.emit('editor:change', {
-        projectId: currentProject.id,
-        fileId,
-        changes,
-        version
-      });
-    }
-  }, [currentProject]);
-
-  // Broadcast chat message
-  const broadcastChatMessage = useCallback((message: string) => {
-    if (!currentProject || !message.trim()) return;
-    const socket = getSocket();
-    if (socket.connected) {
-      socket.emit('chat:send', {
-        projectId: currentProject.id,
-        message: message.trim()
-      });
-    }
-  }, [currentProject]);
-
-  return {
-    broadcastCursorMove,
-    broadcastDeltaChange,
-    broadcastChatMessage
-  };
+  return useSocketActions();
 }

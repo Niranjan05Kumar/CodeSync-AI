@@ -25,3 +25,11 @@ aiRouter.post('/explain', validateBody(explainCodeSchema), aiController.explain)
 
 // POST /api/v1/ai/chat
 aiRouter.post('/chat', validateBody(chatCodeSchema), aiController.chat);
+
+// GET /api/v1/ai/conversations/:projectId (Fetch saved chat history)
+aiRouter.get('/conversations/:projectId', aiController.getChatHistory);
+
+// DELETE /api/v1/ai/conversations/:projectId (Clear chat history)
+aiRouter.delete('/conversations/:projectId', aiController.clearChatHistory);
+
+export default aiRouter;
