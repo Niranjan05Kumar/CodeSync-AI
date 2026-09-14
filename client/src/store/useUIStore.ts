@@ -29,7 +29,7 @@ export interface UIState {
 
   // Active Selections
   activeActivityTab: 'explorer' | 'search' | 'ai' | 'settings';
-  activeBottomTab: 'output' | 'terminal' | 'problems' | 'chat';
+  activeBottomTab: 'output' | 'terminal' | 'chat';
   cursorPosition: { lineNumber: number; column: number };
 
   // Modals
@@ -56,7 +56,7 @@ export interface UIState {
   setBottomPanelHeight: (height: number) => void;
 
   setActiveActivityTab: (tab: 'explorer' | 'search' | 'ai' | 'settings') => void;
-  setActiveBottomTab: (tab: 'output' | 'terminal' | 'problems' | 'chat') => void;
+  setActiveBottomTab: (tab: 'output' | 'terminal' | 'chat') => void;
   setCursorPosition: (pos: { lineNumber: number; column: number }) => void;
 
   setQuickOpenOpen: (open: boolean) => void;

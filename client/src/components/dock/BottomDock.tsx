@@ -164,19 +164,6 @@ export const BottomDock: React.FC = () => {
             Terminal
           </button>
           <button
-            onClick={() => setActiveBottomTab('problems')}
-            className={`h-full px-3 text-ide-xs tracking-wider font-medium uppercase transition-colors border-b-2 flex items-center gap-1.5 ${
-              activeBottomTab === 'problems'
-                ? 'border-ide-blue text-white font-semibold'
-                : 'border-transparent text-ide-muted hover:text-white'
-            }`}
-          >
-            Problems
-            <span className="ml-1 px-1.5 py-0.2 bg-[#2d2d2d] text-ide-dim text-[10px] rounded-full">
-              0
-            </span>
-          </button>
-          <button
             onClick={() => setActiveBottomTab('chat')}
             className={`h-full px-3 text-ide-xs tracking-wider font-medium uppercase transition-colors border-b-2 flex items-center gap-1.5 ${
               activeBottomTab === 'chat'
@@ -294,13 +281,6 @@ export const BottomDock: React.FC = () => {
           </div>
         )}
 
-        {/* PROBLEMS TAB */}
-        {activeBottomTab === 'problems' && (
-          <div className="h-full flex flex-col items-center justify-center text-ide-muted text-ide-sm">
-            <CheckCircle2 className="w-8 h-8 text-ide-green mb-2 opacity-80" />
-            <p>No problems have been detected in the workspace.</p>
-          </div>
-        )}
 
         {/* CHAT TAB */}
         {activeBottomTab === 'chat' && (
