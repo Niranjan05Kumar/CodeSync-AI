@@ -108,7 +108,7 @@ export const useUIStore = create<UIState>((set, get) => ({
       ...(next && isSmallScreen ? { isAiPanelOpen: false, isMobileMenuOpen: false } : {})
     };
   }),
-  setSidebarOpen: (open) => set((s) => {
+  setSidebarOpen: (open) => set((_s) => {
     const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
     return {
       isSidebarOpen: open,
@@ -125,7 +125,7 @@ export const useUIStore = create<UIState>((set, get) => ({
       ...(next && isSmallScreen ? { isSidebarOpen: false, isMobileMenuOpen: false } : {})
     };
   }),
-  setAiPanelOpen: (open) => set((s) => {
+  setAiPanelOpen: (open) => set((_s) => {
     const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
     return {
       isAiPanelOpen: open,
