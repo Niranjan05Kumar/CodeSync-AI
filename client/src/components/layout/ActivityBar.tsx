@@ -21,7 +21,7 @@ export const ActivityBar: React.FC = () => {
   const { collaborators } = useProjectStore();
 
   return (
-    <aside className="w-12 bg-ide-activity border-r border-ide-border flex flex-col justify-between items-center py-2 select-none z-20 shrink-0">
+    <aside className="hidden md:flex w-12 bg-ide-activity border-r border-ide-border flex-col justify-between items-center py-2 select-none z-20 shrink-0">
       {/* Top Stack */}
       <div className="flex flex-col items-center gap-1 w-full">
         {/* Explorer */}

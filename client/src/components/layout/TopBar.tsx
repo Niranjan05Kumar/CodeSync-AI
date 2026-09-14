@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Code2, 
   Play, 
@@ -11,7 +11,13 @@ import {
   Loader2,
   Trash2,
   DoorOpen,
-  Share2
+  Share2,
+  Menu,
+  MoreVertical,
+  Users,
+  Settings,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -26,6 +32,9 @@ export const TopBar: React.FC = () => {
     setInviteModalOpen,
     isAiPanelOpen,
     toggleAiPanel,
+    toggleMobileMenu,
+    setActiveActivityTab,
+    setSidebarOpen,
     showConfirm,
     showToast
   } = useUIStore();
@@ -42,7 +51,30 @@ export const TopBar: React.FC = () => {
   } = useProjectStore();
   const { user, isAuthenticated, logout } = useAuthStore();
 
-  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = React.useState(false);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  const [copiedRoomCode, setCopiedRoomCode] = useState(false);
+
+  const overflowRef = useRef<HTMLDivElement>(null);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setIsOverflowOpen(false);
+      }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -108,30 +140,51 @@ export const TopBar: React.FC = () => {
     ? (currentProject.roomCode || currentProject.room_code || currentProject.id.slice(0, 8).toUpperCase())
     : '';
 
+  const handleCopyRoomCode = () => {
+    if (!roomCode) return;
+    navigator.clipboard.writeText(roomCode);
+    setCopiedRoomCode(true);
+    showToast(`Room ID "${roomCode}" copied to clipboard!`, 'info');
+    setTimeout(() => setCopiedRoomCode(false), 2000);
+  };
+
   return (
-    <header className="h-10 bg-ide-sidebar border-b border-ide-border px-3 flex items-center justify-between text-ide-base select-none z-30">
-      {/* Left Section: Branding, Project Picker, Room Code & Quick Search */}
-      <div className="flex items-center gap-3">
+    <header className="h-10 bg-ide-sidebar border-b border-ide-border px-2 md:px-3 flex items-center justify-between text-ide-base select-none relative z-40 shrink-0 gap-1.5">
+      {/* Left Section: Mobile Menu, Brand, Project Selector */}
+      <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0">
+        {/* Mobile Hamburger Menu (Mobile only) */}
+        <button
+          onClick={toggleMobileMenu}
+          className="md:hidden p-1.5 text-ide-muted hover:text-white rounded hover:bg-[#2a2d2e] transition-colors shrink-0"
+          title="Open Navigation Menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
         {/* Brand */}
-        <div className="flex items-center gap-1.5 font-semibold text-white tracking-wide">
-          <Code2 className="w-5 h-5 text-ide-blue" />
-          <span className="hidden md:inline">CodeSync</span>
+        <div className="flex items-center gap-1.5 font-semibold text-white tracking-wide shrink-0">
+          <Code2 className="w-5 h-5 text-ide-blue shrink-0" />
+          <span className="hidden sm:inline font-bold">CodeSync</span>
         </div>
 
         {/* Project Selector Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={projectDropdownRef}>
           <button
-            onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-            className="h-7 px-2 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded flex items-center gap-1.5 transition-colors max-w-[200px]"
+            onClick={() => {
+              setIsOverflowOpen(false);
+              setIsProjectDropdownOpen(!isProjectDropdownOpen);
+            }}
+            className="h-7 px-2 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded flex items-center gap-1 transition-colors max-w-[110px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[200px]"
+            title={currentProject ? `Project: ${currentProject.name}` : 'Select Project'}
           >
-            <span className="truncate text-ide-sm font-medium">
+            <span className="truncate text-ide-xs sm:text-ide-sm font-medium">
               {currentProject ? currentProject.name : 'Select Project'}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-ide-muted shrink-0" />
+            <ChevronDown className="w-3 h-3 text-ide-muted shrink-0" />
           </button>
 
           {isProjectDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-ide-elevated border border-ide-border shadow-2xl rounded py-1 z-50">
+            <div className="absolute top-full left-0 mt-1 w-60 sm:w-64 bg-ide-elevated border border-ide-border shadow-2xl rounded py-1 z-50">
               <div className="px-3 py-1 text-ide-xs font-semibold text-ide-muted uppercase tracking-wider border-b border-ide-border flex justify-between items-center">
                 <span>Your Projects</span>
                 <button
@@ -211,21 +264,21 @@ export const TopBar: React.FC = () => {
           )}
         </div>
 
-        {/* Join Room Quick Button */}
+        {/* Join Room Quick Button (Tablet & Desktop) */}
         <button
           onClick={handleOpenJoinRoom}
-          className="h-7 px-2.5 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded flex items-center gap-1.5 transition-colors text-ide-xs font-medium"
+          className="hidden sm:flex h-7 px-2 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded items-center gap-1 transition-colors text-ide-xs font-medium shrink-0"
           title="Join a room with an 8-character Room ID"
         >
           <DoorOpen className="w-3.5 h-3.5 text-ide-blue" />
-          <span className="hidden sm:inline">Join Room</span>
+          <span className="hidden md:inline">Join</span>
         </button>
 
-        {/* Active 8-Character Room ID Badge */}
+        {/* Active 8-Character Room ID Badge (Desktop >= 1200px) */}
         {currentProject && (
           <button
             onClick={() => setInviteModalOpen(true)}
-            className="hidden xl:flex items-center gap-1.5 h-7 px-2.5 bg-ide-activity border border-ide-border hover:border-ide-blue rounded text-ide-xs text-ide-muted hover:text-white transition-colors"
+            className="hidden xl:flex items-center gap-1.5 h-7 px-2.5 bg-ide-activity border border-ide-border hover:border-ide-blue rounded text-ide-xs text-ide-muted hover:text-white transition-colors shrink-0"
             title="Click to copy 8-character Room ID or share with collaborators"
           >
             <span className="text-[10px] text-ide-muted uppercase font-semibold">Room:</span>
@@ -233,10 +286,18 @@ export const TopBar: React.FC = () => {
           </button>
         )}
 
-        {/* Quick Open Search Button */}
+        {/* Quick Open Search - Compact on Tablet, Full on Desktop */}
         <button
           onClick={() => setQuickOpenOpen(true)}
-          className="hidden sm:flex items-center gap-2 h-7 px-2.5 bg-ide-activity hover:border-ide-focus border border-ide-border rounded text-ide-muted hover:text-ide-text transition-colors w-40 md:w-52"
+          className="hidden md:flex xl:hidden h-7 w-7 items-center justify-center bg-ide-activity hover:border-ide-focus border border-ide-border rounded text-ide-muted hover:text-ide-text transition-colors shrink-0"
+          title="Search files (Ctrl + P)"
+        >
+          <Search className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => setQuickOpenOpen(true)}
+          className="hidden xl:flex items-center gap-2 h-7 px-2.5 bg-ide-activity hover:border-ide-focus border border-ide-border rounded text-ide-muted hover:text-ide-text transition-colors w-40 desktop:w-48 shrink-0"
+          title="Search files (Ctrl + P)"
         >
           <Search className="w-3.5 h-3.5" />
           <span className="text-ide-xs truncate">Search files (Ctrl + P)</span>
@@ -244,11 +305,11 @@ export const TopBar: React.FC = () => {
       </div>
 
       {/* Center Section: Primary Run CTA */}
-      <div className="flex items-center">
+      <div className="flex items-center shrink-0">
         <button
           onClick={() => runActiveFile()}
           disabled={isExecuting || !activeTabId}
-          className={`h-7 px-3 text-white font-medium flex items-center gap-1.5 rounded transition-all text-ide-sm shadow-sm ${
+          className={`h-7 px-2.5 sm:px-3 text-white font-medium flex items-center gap-1.5 rounded transition-all text-ide-xs sm:text-ide-sm shadow-sm ${
             isExecuting
               ? 'bg-ide-blue/60 cursor-not-allowed opacity-80'
               : !activeTabId
@@ -260,30 +321,30 @@ export const TopBar: React.FC = () => {
           {isExecuting ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <Play className="w-3.5 h-3.5 fill-current" />
+            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
           )}
           <span>{isExecuting ? 'Running...' : 'Run'}</span>
         </button>
       </div>
 
-      {/* Right Section: Share Button, Collaborator Presence, AI Toggle & Auth Profile */}
-      <div className="flex items-center gap-2.5">
-        {/* Share / Invite Button (when a project is open) */}
+      {/* Right Section: Mobile Controls + Tablet/Desktop Extensions */}
+      <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+        {/* Share / Invite Button (Tablet & Desktop) */}
         {currentProject && (
           <button
             onClick={() => setInviteModalOpen(true)}
-            className="h-7 px-2.5 bg-ide-blue/15 hover:bg-ide-blue/25 text-ide-blue border border-ide-blue/30 rounded flex items-center gap-1.5 text-ide-xs font-medium transition-colors"
-            title="Share 8-Character Room ID & Invite Collaborators"
+            className="hidden md:flex h-7 px-2.5 bg-ide-blue/15 hover:bg-ide-blue/25 text-ide-blue border border-ide-blue/30 rounded items-center gap-1.5 text-ide-xs font-medium transition-colors shrink-0"
+            title="Share Room Code & Invite Collaborators"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Share</span>
+            <span className="hidden xl:inline">Share</span>
           </button>
         )}
 
-        {/* Collaborators Avatar Stack */}
+        {/* Collaborators Avatar Stack (Desktop >= 1200px) */}
         <div 
           onClick={() => currentProject && setInviteModalOpen(true)}
-          className="flex items-center -space-x-1.5 cursor-pointer"
+          className="hidden xl:flex items-center -space-x-1.5 cursor-pointer shrink-0"
           title="Click to view room collaborators"
         >
           {collaborators.map((c) => (
@@ -298,28 +359,29 @@ export const TopBar: React.FC = () => {
           ))}
         </div>
 
-        {/* AI Assistant Toggle Button */}
+        {/* AI Assistant Button (Compact on mobile, full on desktop) */}
         <button
           onClick={toggleAiPanel}
-          className={`h-7 px-2.5 rounded border flex items-center gap-1.5 transition-colors text-ide-sm ${
+          className={`h-7 px-2 sm:px-2.5 rounded border flex items-center gap-1 sm:gap-1.5 transition-colors text-ide-xs sm:text-ide-sm shrink-0 ${
             isAiPanelOpen
               ? 'bg-ide-blue text-white border-ide-blue'
               : 'bg-ide-elevated hover:bg-[#2d2d2d] text-ide-text border-ide-border'
           }`}
           title="Toggle AI Assistant (Ctrl + Shift + A)"
         >
-          <Sparkles className="w-3.5 h-3.5 text-ide-amber" />
-          <span className="hidden lg:inline">AI Assistant</span>
+          <Sparkles className="w-3.5 h-3.5 text-ide-amber shrink-0" />
+          <span className="font-medium">AI</span>
+          <span className="hidden xl:inline font-normal">Assistant</span>
         </button>
 
-        {/* User Profile / Auth State */}
+        {/* User Profile / Auth State (Tablet & Desktop) */}
         {isAuthenticated && user ? (
-          <div className="flex items-center gap-2 pl-2 border-l border-ide-border">
+          <div className="hidden md:flex items-center gap-2 pl-2 border-l border-ide-border shrink-0">
             <div className="flex items-center gap-1.5 text-ide-sm text-ide-text">
-              <div className="w-6 h-6 rounded-full bg-ide-blue flex items-center justify-center text-ide-xs font-bold text-white">
-                {user.username.slice(0, 1).toUpperCase()}
+              <div className="w-6 h-6 rounded-full bg-ide-blue flex items-center justify-center text-ide-xs font-bold text-white uppercase">
+                {user.username.slice(0, 1)}
               </div>
-              <span className="hidden xl:inline max-w-[100px] truncate">{user.username}</span>
+              <span className="hidden xl:inline max-w-[90px] truncate">{user.username}</span>
             </div>
             <button
               onClick={handleLogout}
@@ -332,12 +394,132 @@ export const TopBar: React.FC = () => {
         ) : (
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="h-7 px-3 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded flex items-center gap-1 text-ide-sm transition-colors"
+            className="hidden md:flex h-7 px-2.5 bg-ide-elevated hover:bg-[#2d2d2d] text-white border border-ide-border rounded items-center gap-1 text-ide-xs sm:text-ide-sm transition-colors shrink-0"
           >
             <UserIcon className="w-3.5 h-3.5" />
             <span>Sign In</span>
           </button>
         )}
+
+        {/* Mobile & Tablet Overflow Menu (⋯) */}
+        <div className="relative md:hidden" ref={overflowRef}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsProjectDropdownOpen(false);
+              setIsOverflowOpen(!isOverflowOpen);
+            }}
+            className={`h-7 w-7 flex items-center justify-center rounded border transition-colors ${
+              isOverflowOpen 
+                ? 'bg-ide-elevated text-white border-ide-blue' 
+                : 'border-ide-border text-ide-muted hover:text-white hover:bg-ide-elevated'
+            }`}
+            title="More Actions"
+            aria-label="More Actions"
+            aria-expanded={isOverflowOpen}
+          >
+            <MoreVertical className="w-4 h-4 pointer-events-none" />
+          </button>
+
+          {isOverflowOpen && (
+            <div className="absolute top-full right-0 mt-1 w-56 bg-ide-elevated border border-ide-border shadow-2xl rounded py-1 z-50 text-ide-sm">
+              {currentProject && (
+                <>
+                  <div className="px-3 py-2 border-b border-ide-border bg-[#1b1b1c]">
+                    <div className="text-[10px] text-ide-muted uppercase font-semibold">Room Code</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="font-mono text-xs font-bold text-white tracking-widest">{roomCode}</span>
+                      <button
+                        onClick={handleCopyRoomCode}
+                        className="p-1 text-ide-dim hover:text-white rounded"
+                        title="Copy Room Code"
+                      >
+                        {copiedRoomCode ? <Check className="w-3.5 h-3.5 text-ide-green" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setIsOverflowOpen(false);
+                      setInviteModalOpen(true);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center gap-2.5 text-ide-text hover:text-white transition-colors"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-ide-blue" />
+                    <span>Share & Invite</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsOverflowOpen(false);
+                  setQuickOpenOpen(true);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center gap-2.5 text-ide-text hover:text-white transition-colors"
+              >
+                <Search className="w-3.5 h-3.5 text-ide-blue" />
+                <span>Search Files (Ctrl+P)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsOverflowOpen(false);
+                  setActiveActivityTab('collaborators');
+                  setSidebarOpen(true);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center justify-between text-ide-text hover:text-white transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-3.5 h-3.5 text-ide-green" />
+                  <span>Collaborators</span>
+                </div>
+                <span className="text-[10px] px-1.5 bg-ide-blue text-white rounded-full font-bold">
+                  {collaborators.length + (user ? 1 : 0)}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsOverflowOpen(false);
+                  setActiveActivityTab('settings');
+                  setSidebarOpen(true);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center gap-2.5 text-ide-text hover:text-white transition-colors"
+              >
+                <Settings className="w-3.5 h-3.5 text-ide-muted" />
+                <span>Settings</span>
+              </button>
+
+              <div className="border-t border-ide-border my-1" />
+
+              {isAuthenticated && user ? (
+                <button
+                  onClick={() => {
+                    setIsOverflowOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center gap-2.5 text-ide-red transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out ({user.username})</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsOverflowOpen(false);
+                    setAuthModalOpen(true);
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-[#2a2d2e] flex items-center gap-2.5 text-ide-blue transition-colors font-medium"
+                >
+                  <UserIcon className="w-3.5 h-3.5" />
+                  <span>Sign In / Register</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

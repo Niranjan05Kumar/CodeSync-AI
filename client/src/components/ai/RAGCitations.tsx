@@ -20,9 +20,9 @@ export const RAGCitations: React.FC<RAGCitationsProps> = ({ sources, onOpenCitat
 
   return (
     <div className="space-y-2 pt-2 select-text">
-      <div className="flex items-center gap-1.5 text-ide-xs font-semibold text-white tracking-wide uppercase">
+      <div className="flex items-center gap-1.5 text-ide-xs font-semibold text-white tracking-wide">
         <Sparkles className="w-3.5 h-3.5 text-ide-amber" />
-        <span>Cited Project Sources ({sources.length})</span>
+        <span>Context used · {sources.length} {sources.length === 1 ? 'file' : 'files'}</span>
       </div>
 
       <div className="space-y-1.5">

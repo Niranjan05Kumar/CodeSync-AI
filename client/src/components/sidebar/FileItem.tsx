@@ -70,6 +70,10 @@ export const FileItem: React.FC<FileItemProps> = ({ node, level }) => {
         path: node.path,
         language: node.language || 'plaintext'
       });
+      // On mobile or tablet where Explorer is an overlay drawer, close on file select
+      if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+        useUIStore.getState().setSidebarOpen(false);
+      }
     }
   };
 

@@ -7,7 +7,9 @@ import {
   CheckCircle2, 
   Maximize2, 
   Minimize2,
-  Loader2
+  Loader2,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -137,11 +139,53 @@ export const BottomDock: React.FC = () => {
     setChatInput('');
   };
 
+  if (!isBottomPanelOpen) {
+    return (
+      <div 
+        onClick={() => setBottomPanelOpen(true)}
+        className="h-7 w-full bg-[#1e1e1e] border-t border-ide-border px-3 flex items-center justify-between text-ide-xs text-ide-muted hover:text-white cursor-pointer select-none transition-colors z-20 shrink-0"
+        title="Click to expand Output / Terminal / Chat"
+      >
+        <div className="flex items-center gap-2">
+          <ChevronUp className="w-3.5 h-3.5 text-ide-blue shrink-0" />
+          <span className="font-semibold text-white uppercase text-[10px] tracking-wider">
+            {activeBottomTab}
+          </span>
+          <span className="text-[10px] text-ide-dim hidden sm:inline">• Click to expand</span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-ide-muted font-mono">
+          <span className={activeBottomTab === 'output' ? 'text-ide-blue font-semibold' : ''}>OUTPUT</span>
+          <span>•</span>
+          <span className={activeBottomTab === 'terminal' ? 'text-ide-blue font-semibold' : ''}>TERMINAL</span>
+          <span>•</span>
+          <span className={activeBottomTab === 'chat' ? 'text-ide-blue font-semibold' : ''}>
+            CHAT {chatMessages.length > 0 && `(${chatMessages.length})`}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <div
-      style={{ height: isMaximized ? 'calc(100vh - 64px)' : `${bottomPanelHeight}px` }}
-      className="w-full bg-[#181818] border-t border-ide-border flex flex-col z-20 transition-[height] duration-150"
+      style={{ 
+        height: isMaximized 
+          ? 'calc(100vh - 64px)' 
+          : isMobile 
+          ? '45vh' 
+          : `${bottomPanelHeight}px` 
+      }}
+      className="w-full bg-[#181818] border-t border-ide-border flex flex-col z-20 transition-[height] duration-150 shrink-0 select-none font-sans"
     >
+      {/* Mobile Drawer Grab Bar */}
+      <div 
+        onClick={() => setIsMaximized(!isMaximized)}
+        className="w-10 h-1 bg-[#3c3c3d] rounded-full mx-auto my-1 md:hidden cursor-pointer shrink-0" 
+        title="Tap to toggle size"
+      />
+
       {/* Panel Header */}
       <div className="h-8 px-2 flex items-center justify-between border-b border-ide-border/60 bg-[#1e1e1e] shrink-0 select-none">
         {/* Tabs */}

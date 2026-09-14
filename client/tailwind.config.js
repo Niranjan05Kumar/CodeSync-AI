@@ -35,7 +35,16 @@ export default {
         'ide-sm': ['11px', '15px'],
         'ide-base': ['12px', '16px'],
         'ide-md': ['13px', '18px'],
-        'ide-code': ['14px', '21px'],
+        'ide-code': ['14px', '21px']
+      },
+      screens: {
+        'xs': '480px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'desktop': '1200px',
+        'xl': '1200px',
+        '2xl': '1536px'
       }
     }
   },

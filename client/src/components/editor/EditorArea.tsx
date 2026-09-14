@@ -239,7 +239,7 @@ export const EditorArea: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] overflow-hidden min-w-0">
       {/* Tab Strip */}
       <EditorTabs />
 
@@ -247,7 +247,7 @@ export const EditorArea: React.FC = () => {
       <Breadcrumbs />
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative min-w-0">
         {activeTab ? (
           <Editor
             height="100%"
@@ -269,7 +269,7 @@ export const EditorArea: React.FC = () => {
           />
         ) : (
           /* Empty / Welcome State */
-          <div className="h-full flex flex-col items-center justify-center p-8 select-none bg-[#1f1f1f]">
+          <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 select-none bg-[#1f1f1f] overflow-y-auto">
             <div className="w-16 h-16 rounded-2xl bg-[#252526] border border-ide-border flex items-center justify-center text-ide-blue mb-4 shadow-xl">
               <Code2 className="w-8 h-8" />
             </div>

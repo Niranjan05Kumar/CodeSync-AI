@@ -410,7 +410,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   runActiveFile: async () => {
-    const { currentProject, openTabs, activeTabId, activeFileContent, isExecuting } = get();
+    const { currentProject, openTabs, activeTabId, isExecuting } = get();
     if (isExecuting) return;
 
     // Switch BottomDock to OUTPUT tab and ensure panel is open

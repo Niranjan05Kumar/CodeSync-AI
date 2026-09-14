@@ -12,7 +12,7 @@ export const Breadcrumbs: React.FC = () => {
   const segments = activeTab.path.replace(/^\//, '').split('/');
 
   return (
-    <div className="h-6 px-4 bg-[#1e1e1e] border-b border-ide-border/40 flex items-center gap-1.5 text-ide-xs text-ide-muted select-none shrink-0 font-sans">
+    <div className="h-6 px-3 sm:px-4 bg-[#1e1e1e] border-b border-ide-border/40 flex items-center gap-1.5 text-ide-xs text-ide-muted select-none shrink-0 font-sans overflow-x-auto no-scrollbar whitespace-nowrap">
       <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
         <FolderGit2 className="w-3 h-3 text-ide-blue" />
         <span className="font-medium">{currentProject.name}</span>

@@ -19,32 +19,32 @@ export const StatusBar: React.FC = () => {
   return (
     <footer className="h-6 bg-ide-activity border-t border-ide-border px-3 flex items-center justify-between text-ide-xs text-ide-muted select-none z-30 font-mono">
       {/* Left Section: Git & RAG status */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Git Branch */}
         <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
           <GitBranch className="w-3.5 h-3.5 text-ide-blue" />
           <span>main*</span>
         </div>
 
-        {/* RAG Status */}
-        <div className="hidden sm:flex items-center gap-1 text-ide-muted hover:text-white cursor-pointer transition-colors">
+        {/* RAG Status (Tablet & Desktop) */}
+        <div className="hidden md:flex items-center gap-1 text-ide-muted hover:text-white cursor-pointer transition-colors">
           <CheckCircle2 className="w-3 h-3 text-ide-green" />
-          <span>RAG Indexed</span>
+          <span className="hidden xl:inline">RAG Indexed</span>
         </div>
       </div>
 
       {/* Right Section: Editor Metrics & Connectivity */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Line & Column */}
-        <span className="hover:text-white cursor-pointer">
+        <span className="hidden xs:inline hover:text-white cursor-pointer">
           Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
         </span>
 
-        {/* Indentation */}
-        <span className="hidden md:inline hover:text-white cursor-pointer">Spaces: 2</span>
+        {/* Indentation (Desktop only) */}
+        <span className="hidden xl:inline hover:text-white cursor-pointer">Spaces: 2</span>
 
-        {/* Encoding */}
-        <span className="hidden md:inline hover:text-white cursor-pointer">UTF-8</span>
+        {/* Encoding (Desktop only) */}
+        <span className="hidden xl:inline hover:text-white cursor-pointer">UTF-8</span>
 
         {/* Active Language Mode */}
         <span className="hover:text-white cursor-pointer font-sans text-ide-text">

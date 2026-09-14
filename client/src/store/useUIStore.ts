@@ -38,6 +38,7 @@ export interface UIState {
   isAuthModalOpen: boolean;
   isJoinRoomOpen: boolean;
   isInviteModalOpen: boolean;
+  isMobileMenuOpen: boolean;
 
   // Custom Confirmation Dialog & Toasts
   confirmDialog: ConfirmDialogOptions | null;
@@ -50,6 +51,9 @@ export interface UIState {
   setAiPanelOpen: (open: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelOpen: (open: boolean) => void;
+  toggleMobileMenu: () => void;
+  setMobileMenuOpen: (open: boolean) => void;
+  closeAllDrawers: () => void;
 
   setSidebarWidth: (width: number) => void;
   setAiPanelWidth: (width: number) => void;
@@ -73,9 +77,10 @@ export interface UIState {
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
-  isSidebarOpen: true,
+  isSidebarOpen: typeof window !== 'undefined' ? window.innerWidth >= 1200 : true,
   isAiPanelOpen: false,
   isBottomPanelOpen: true,
+  isMobileMenuOpen: false,
 
   sidebarWidth: 256,
   aiPanelWidth: 320,
@@ -94,25 +99,63 @@ export const useUIStore = create<UIState>((set, get) => ({
   confirmDialog: null,
   toasts: [],
 
-  toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
-  setSidebarOpen: (open) => set({ isSidebarOpen: open }),
+  toggleSidebar: () => set((s) => {
+    const next = !s.isSidebarOpen;
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
+    return { 
+      isSidebarOpen: next,
+      // On tablet/mobile, opening sidebar closes AI panel and mobile menu
+      ...(next && isSmallScreen ? { isAiPanelOpen: false, isMobileMenuOpen: false } : {})
+    };
+  }),
+  setSidebarOpen: (open) => set((s) => {
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
+    return {
+      isSidebarOpen: open,
+      ...(open && isSmallScreen ? { isAiPanelOpen: false, isMobileMenuOpen: false } : {})
+    };
+  }),
 
-  toggleAiPanel: () => set((s) => ({ isAiPanelOpen: !s.isAiPanelOpen })),
-  setAiPanelOpen: (open) => set({ isAiPanelOpen: open }),
+  toggleAiPanel: () => set((s) => {
+    const next = !s.isAiPanelOpen;
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
+    return { 
+      isAiPanelOpen: next,
+      // On tablet/mobile, opening AI panel closes sidebar drawer
+      ...(next && isSmallScreen ? { isSidebarOpen: false, isMobileMenuOpen: false } : {})
+    };
+  }),
+  setAiPanelOpen: (open) => set((s) => {
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
+    return {
+      isAiPanelOpen: open,
+      ...(open && isSmallScreen ? { isSidebarOpen: false, isMobileMenuOpen: false } : {})
+    };
+  }),
 
   toggleBottomPanel: () => set((s) => ({ isBottomPanelOpen: !s.isBottomPanelOpen })),
   setBottomPanelOpen: (open) => set({ isBottomPanelOpen: open }),
+
+  toggleMobileMenu: () => set((s) => ({ isMobileMenuOpen: !s.isMobileMenuOpen })),
+  setMobileMenuOpen: (open) => set({ isMobileMenuOpen: open }),
+
+  closeAllDrawers: () => set({ isSidebarOpen: false, isAiPanelOpen: false, isMobileMenuOpen: false }),
 
   setSidebarWidth: (width) => set({ sidebarWidth: Math.max(180, Math.min(450, width)) }),
   setAiPanelWidth: (width) => set({ aiPanelWidth: Math.max(260, Math.min(480, width)) }),
   setBottomPanelHeight: (height) => set({ bottomPanelHeight: Math.max(120, Math.min(600, height)) }),
 
   setActiveActivityTab: (tab) => set((s) => {
-    // If clicking same tab, toggle sidebar
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1200;
+    // If clicking same tab and sidebar is open, toggle off
     if (s.activeActivityTab === tab && s.isSidebarOpen) {
       return { isSidebarOpen: false };
     }
-    return { activeActivityTab: tab, isSidebarOpen: true };
+    return { 
+      activeActivityTab: tab, 
+      isSidebarOpen: true,
+      ...(isSmallScreen ? { isAiPanelOpen: false, isMobileMenuOpen: false } : {})
+    };
   }),
 
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab, isBottomPanelOpen: true }),

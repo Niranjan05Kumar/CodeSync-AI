@@ -16,7 +16,7 @@ import { FileTree } from './FileTree';
 
 export const ExplorerSidebar: React.FC = () => {
   const { currentProject, projects, selectProject, deleteProject, isTreeLoading, refreshTree } = useProjectStore();
-  const { setCreateProjectOpen, showConfirm, showToast } = useUIStore();
+  const { setCreateProjectOpen, setSidebarOpen, showConfirm, showToast } = useUIStore();
   
   const [filterQuery, setFilterQuery] = useState('');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -79,6 +79,13 @@ export const ExplorerSidebar: React.FC = () => {
             className="p-1 rounded hover:text-white hover:bg-[#2a2d2e] transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isTreeLoading ? 'animate-spin text-ide-blue' : ''}`} />
+          </button>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            title="Close Drawer"
+            className="p-1 rounded hover:text-white hover:bg-[#2a2d2e] transition-colors xl:hidden"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

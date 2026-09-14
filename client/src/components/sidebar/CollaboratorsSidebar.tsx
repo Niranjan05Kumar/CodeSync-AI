@@ -7,7 +7,8 @@ import {
   Radio, 
   FileText, 
   Share2,
-  Shield
+  Shield,
+  X
 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -16,7 +17,7 @@ import { useUIStore } from '../../store/useUIStore';
 export const CollaboratorsSidebar: React.FC = () => {
   const { currentProject, collaborators, openTabs, activeTabId } = useProjectStore();
   const { user } = useAuthStore();
-  const { setInviteModalOpen, showToast, cursorPosition } = useUIStore();
+  const { setInviteModalOpen, setSidebarOpen, showToast, cursorPosition } = useUIStore();
   const [copiedCode, setCopiedCode] = useState(false);
 
   const roomCode = currentProject?.roomCode || currentProject?.room_code || '';
@@ -44,15 +45,24 @@ export const CollaboratorsSidebar: React.FC = () => {
           </span>
         </div>
 
-        {currentProject && (
+        <div className="flex items-center gap-1">
+          {currentProject && (
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              title="Invite & Share Room Code"
+              className="p-1 rounded text-ide-dim hover:text-white hover:bg-[#2a2d2e] transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
-            onClick={() => setInviteModalOpen(true)}
-            title="Invite & Share Room Code"
-            className="p-1 rounded text-ide-dim hover:text-white hover:bg-[#2a2d2e] transition-colors"
+            onClick={() => setSidebarOpen(false)}
+            title="Close Drawer"
+            className="p-1 rounded text-ide-dim hover:text-white hover:bg-[#2a2d2e] transition-colors xl:hidden"
           >
-            <UserPlus className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" />
           </button>
-        )}
+        </div>
       </div>
 
       {/* Main Content Area */}

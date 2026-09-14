@@ -321,8 +321,8 @@ export const AIAssistantSidebar: React.FC = () => {
 
   return (
     <div
-      style={{ width: `${aiPanelWidth}px` }}
-      className="h-full bg-ide-sidebar border-l border-ide-border flex flex-col z-20 shrink-0 select-none font-sans"
+      style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1200 ? `${aiPanelWidth}px` : undefined }}
+      className="h-full w-full max-w-full md:w-[380px] xl:w-auto bg-ide-sidebar border-l border-ide-border flex flex-col z-20 shrink-0 select-none font-sans"
     >
       {/* Header */}
       <div className="h-9 px-3 flex items-center justify-between border-b border-ide-border bg-[#181818] shrink-0">
