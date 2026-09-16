@@ -120,3 +120,12 @@ ON code_embeddings
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
+-- 9. Row Level Security (RLS) Configuration
+-- Secures tables against public PostgREST queries while allowing backend connection pool (postgres role) full access
+ALTER TABLE IF EXISTS users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS project_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS code_embeddings ENABLE ROW LEVEL SECURITY;
+

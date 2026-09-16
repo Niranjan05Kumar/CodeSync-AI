@@ -187,6 +187,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   resetProjectStore: () => {
+    try {
+      localStorage.removeItem('codesync_active_project_id');
+    } catch {}
     set({
       currentProject: null,
       projects: [],
@@ -210,7 +213,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const data = await projectApi.getProjects();
       set({ projects: data.projects });
       if (!get().currentProject && data.projects.length > 0) {
-        await get().selectProject(data.projects[0]);
+        // Resolve active project: Check URL search query first, then localStorage fallback
+        let targetId: string | null = null;
+        try {
+          const params = new URLSearchParams(window.location.search);
+          targetId = params.get('project') || localStorage.getItem('codesync_active_project_id');
+        } catch {
+          targetId = null;
+        }
+
+        const targetProject = (targetId && data.projects.find((p) => p.id === targetId)) || data.projects[0];
+        await get().selectProject(targetProject);
       }
     } catch (err) {
       console.error('[ProjectStore] Failed to fetch projects:', err);
@@ -218,6 +231,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   selectProject: async (project: Project) => {
+    // Persist active project to localStorage and URL query parameter without reloading
+    try {
+      localStorage.setItem('codesync_active_project_id', project.id);
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has('room')) {
+        url.searchParams.set('project', project.id);
+        window.history.replaceState({}, document.title, url.toString());
+      }
+    } catch {
+      // Ignore URL/storage errors in non-browser environments
+    }
+
     set({
       currentProject: project,
       openTabs: [],
@@ -231,10 +256,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const treeData = await fileApi.getProjectTree(project.id);
       set({ fileTree: treeData.tree, isTreeLoading: false });
 
-      // Automatically open the first code file or README.md if found
-      const firstFile = findFirstCodeFile(treeData.tree);
-      if (firstFile) {
-        await get().openFile(firstFile);
+      // Automatically restore the last active file in this project or open the first code file/README
+      let targetFile = null;
+      try {
+        const savedFileId = localStorage.getItem(`codesync_active_file_${project.id}`);
+        if (savedFileId) {
+          targetFile = findFileById(treeData.tree, savedFileId);
+        }
+      } catch {}
+
+      if (!targetFile) {
+        targetFile = findFirstCodeFile(treeData.tree);
+      }
+
+      if (targetFile) {
+        await get().openFile(targetFile);
       }
     } catch (err) {
       console.error('[ProjectStore] Failed to load project tree:', err);
@@ -249,6 +285,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ projects: remaining });
 
     if (currentProject?.id === projectId) {
+      try {
+        localStorage.removeItem('codesync_active_project_id');
+        localStorage.removeItem(`codesync_active_file_${projectId}`);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('project');
+        window.history.replaceState({}, document.title, url.toString());
+      } catch {}
+
       if (remaining.length > 0) {
         await get().selectProject(remaining[0]);
       } else {
@@ -278,6 +322,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   openFile: async (file) => {
     const { openTabs, currentProject } = get();
     if (!currentProject) return;
+
+    try {
+      localStorage.setItem(`codesync_active_file_${currentProject.id}`, file.id);
+    } catch {}
 
     // Add tab if not already open
     if (!openTabs.some((t) => t.id === file.id)) {
@@ -337,7 +385,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   closeTab: (fileId) => {
-    const { openTabs, activeTabId } = get();
+    const { openTabs, activeTabId, currentProject } = get();
     const newTabs = openTabs.filter((t) => t.id !== fileId);
     let nextActiveId = activeTabId;
 
@@ -363,15 +411,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         get().openFile(nextTab);
       }
     } else {
+      if (currentProject) {
+        try {
+          localStorage.removeItem(`codesync_active_file_${currentProject.id}`);
+        } catch {}
+      }
       set({ activeFileContent: '', activeFileVersion: 1 });
     }
   },
 
   setActiveTabId: async (fileId) => {
-    const tab = get().openTabs.find((t) => t.id === fileId);
-    if (tab) {
-      await get().openFile(tab);
-    }
+    const { openTabs, currentProject } = get();
+    const tab = openTabs.find((t) => t.id === fileId);
+    if (!tab || !currentProject) return;
+
+    try {
+      localStorage.setItem(`codesync_active_file_${currentProject.id}`, fileId);
+    } catch {}
+
+    await get().openFile(tab);
   },
 
   updateActiveContent: (content: string) => {
@@ -573,3 +631,22 @@ function findFirstCodeFile(nodes: FileTreeNode[]): { id: string; name: string; p
   }
   return null;
 }
+
+function findFileById(nodes: FileTreeNode[], fileId: string): { id: string; name: string; path: string; language: string } | null {
+  for (const node of nodes) {
+    if (!node.isDirectory && node.id === fileId) {
+      return {
+        id: node.id,
+        name: node.name,
+        path: node.path,
+        language: node.language || 'plaintext'
+      };
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findFileById(node.children, fileId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
