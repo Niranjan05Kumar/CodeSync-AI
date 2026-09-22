@@ -11,6 +11,22 @@
 
 ---
 
+## 1. Documentation & Technical Specifications
+
+Comprehensive technical reports, architectural designs, security audits, and deployment guides are available in the [`docs/`](docs/) directory:
+
+| Document | Description |
+| :--- | :--- |
+| **[FINAL_TECHNICAL_REPORT.md](docs/FINAL_TECHNICAL_REPORT.md)** | Authoritative technical specification: database schemas, REST APIs, Socket.IO protocols, RAG pipeline, and container sandbox. |
+| **[PROJECT_REPORT.md](docs/PROJECT_REPORT.md)** | Comprehensive project overview, architectural trade-offs, benchmarks, and performance metrics. |
+| **[UI_DESIGN.md](docs/UI_DESIGN.md)** | VS Code Dark Modern design tokens, color palette, responsive breakpoints, and Monaco Editor integration. |
+| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | Step-by-step production deployment instructions for Vercel, Render, Supabase, Neon, and Docker. |
+| **[SECURITY.md](docs/SECURITY.md)** | Security threat modeling, container isolation, JWT rotation, rate limiting, and vulnerability reporting. |
+| **[ENVIRONMENT.md](docs/ENVIRONMENT.md)** | Complete environment variable specifications and secret management contracts across workspaces. |
+| **[Agent.md](docs/Agent.md)** | Autonomous AI pair programmer guardrails, implementation phase order, and testing protocols. |
+
+---
+
 ## 2. Overview
 
 **CodeSync AI** is a real-time collaborative cloud development environment designed for distributed engineering teams, pair programmers, technical interviewers, and educators. 
@@ -85,7 +101,8 @@ The CodeSync AI interface reflects the VS Code Dark Modern design language:
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-* **Live Demo**: Deployable to Vercel (Frontend) and Render (Backend). See [DEPLOYMENT.md](file:///d:/CodeSync%20AI/DEPLOYMENT.md).
+* **Live Demo**: Deployable to Vercel (Frontend) and Render (Backend). See [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+* **Design Specifications**: Full design tokens and UI mockups are detailed in [UI_DESIGN.md](docs/UI_DESIGN.md).
 
 ---
 
@@ -154,6 +171,8 @@ flowchart TD
     SandboxWorker -.->|Isolated Execution| Browser
 ```
 
+For the complete architectural specification, database schemas, and data flow models, refer to **[FINAL_TECHNICAL_REPORT.md](docs/FINAL_TECHNICAL_REPORT.md)**.
+
 ---
 
 ## 7. RAG Architecture
@@ -195,6 +214,14 @@ Active Repository Files
 
 ```text
 CodeSync-AI/
+├── docs/                     # Project documentation, architecture specs, and guides
+│   ├── Agent.md              # Autonomous agent guidelines & roadmap
+│   ├── DEPLOYMENT.md         # Production deployment guide (Vercel, Render, Supabase)
+│   ├── ENVIRONMENT.md        # Environment variables & secrets specification
+│   ├── FINAL_TECHNICAL_REPORT.md # Technical specification & architecture report
+│   ├── PROJECT_REPORT.md     # Comprehensive project report & benchmarks
+│   ├── SECURITY.md           # Security audit & threat model
+│   └── UI_DESIGN.md          # VS Code Dark Modern design tokens & layout
 ├── .env.example              # Central environment configuration contract
 ├── docker-compose.yml        # Local development infrastructure (Postgres, Redis, MinIO)
 ├── docker-compose.prod.yml   # Production multi-container composition
@@ -240,7 +267,7 @@ CodeSync-AI/
 
 ## 9. Environment Variables
 
-Environment variables are partitioned cleanly across workspaces. Template contracts are provided in `.env.example` files. Never commit actual `.env` files containing credentials.
+Environment variables are partitioned cleanly across workspaces. Template contracts are provided in `.env.example` files. Never commit actual `.env` files containing credentials. For complete variable descriptions and production secret guidelines, see **[ENVIRONMENT.md](docs/ENVIRONMENT.md)**.
 
 ### Backend Server (`server/.env`)
 ```env
@@ -429,7 +456,7 @@ CodeSync AI is structured for deployment across modern cloud platforms:
 * **Database → [Supabase](https://supabase.com) or [Neon](https://neon.tech)**: PostgreSQL 16 with `pgvector`
 * **Cache & Queues → [Upstash](https://upstash.com)**: Serverless Redis with TLS
 
-For step-by-step deployment instructions, refer to **[DEPLOYMENT.md](file:///d:/CodeSync%20AI/DEPLOYMENT.md)**.
+For step-by-step deployment instructions, refer to **[DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ---
 
@@ -446,7 +473,7 @@ CodeSync AI implements multiple defense layers:
 * **Production Error Masking**: Unhandled server exceptions mask internal stack traces and database credentials, returning generic `"Internal server error"` to end users while logging details on the server.
 * **Security Headers**: Managed via Helmet (`nosniff`, `SAMEORIGIN`, `cross-origin` resource policy).
 
-For the full security audit, refer to **[SECURITY.md](file:///d:/CodeSync%20AI/SECURITY.md)**.
+For the full security audit, refer to **[SECURITY.md](docs/SECURITY.md)**.
 
 ---
 

@@ -21,7 +21,7 @@
 
 Before generating or modifying any code in this repository, you **MUST** align with the specifications defined in:
 
-1. **[FINAL_TECHNICAL_REPORT.md](file:///d:/CodeEditor/FINAL_TECHNICAL_REPORT.md)**: The single source of truth for:
+1. **[FINAL_TECHNICAL_REPORT.md](docs/FINAL_TECHNICAL_REPORT.md)**: The single source of truth for:
    * System architecture & data flow
    * PostgreSQL + pgvector DDL schema, indexes, and cascades
    * REST API contracts (`/api/v1/*`) with Zod request/response types
@@ -30,7 +30,7 @@ Before generating or modifying any code in this repository, you **MUST** align w
    * RAG pipeline (Recursive code chunking, `text-embedding-3-small`, HNSW search)
    * Multi-instance Redis adapter & S3 two-tier storage hierarchy
 
-2. **[UI_DESIGN.md](file:///d:/CodeEditor/UI_DESIGN.md)**: The single source of truth for:
+2. **[UI_DESIGN.md](docs/UI_DESIGN.md)**: The single source of truth for:
    * Professional VS Code Dark Modern design tokens (`#181818`, `#1e1e1e`, `#1f1f1f`, `#252526`, `#007acc`)
    * Tailwind CSS theme configuration and typography (`JetBrains Mono`, `Inter`)
    * Monaco Editor construction options and remote cursor styling
@@ -121,7 +121,7 @@ Any agent violating these rules is writing broken or insecure code. Check your c
 ### 3.5 UI & Styling Rules
 * ❌ **NEVER** use glassmorphism, flashy gradients, neon colors, oversized cards, or marketing hero sections.
 * ❌ **NEVER** use random arbitrary colors for dark surfaces.
-* ✅ **ALWAYS** adhere to the design tokens in [UI_DESIGN.md](file:///d:/CodeEditor/UI_DESIGN.md):
+* ✅ **ALWAYS** adhere to the design tokens in [UI_DESIGN.md](docs/UI_DESIGN.md):
   * Activity Bar: `#181818`
   * Sidebar: `#1e1e1e`
   * Monaco Editor Canvas: `#1f1f1f`
@@ -137,7 +137,7 @@ Any agent violating these rules is writing broken or insecure code. Check your c
 When creating files, place them in the correct module:
 
 ```text
-d:\CodeEditor/
+d:\CodeSync AI/
 ├── package.json              # Root npm workspace
 ├── docker-compose.yml        # Local Postgres (pgvector), Redis, MinIO
 ├── .env.example              # Consolidated environment variable contract
@@ -244,6 +244,6 @@ When an agent completes a task or phase, it **MUST verify** the deliverable:
 1. **Schema Migrations**: Run SQL DDL in PostgreSQL and verify table creation and vector extension (`SELECT * FROM pg_extension WHERE extname = 'vector'`).
 2. **Type Checking**: Run `npm run type-check` or `npx tsc --noEmit` across client, server, and worker. Zero TypeScript errors allowed.
 3. **API Contracts**: Test endpoints using curl, Supertest, or Postman collections; ensure error paths return standardized `{ success: false, error: { message, code } }` with proper HTTP status codes (400, 401, 403, 404, 500).
-4. **Real-Time Testing**: Confirm that Socket.IO events match the payload signatures in Section 7 of [FINAL_TECHNICAL_REPORT.md](file:///d:/CodeEditor/FINAL_TECHNICAL_REPORT.md).
+4. **Real-Time Testing**: Confirm that Socket.IO events match the payload signatures in Section 7 of [FINAL_TECHNICAL_REPORT.md](docs/FINAL_TECHNICAL_REPORT.md).
 5. **Sandbox Verification**: When testing code execution, run a loop script (`while True: pass`) to ensure the 5-second SIGKILL terminates the container without crashing the Node.js server.
 6. **Git Milestone & Push Discipline**: The agent must **NOT** automatically stage, commit, or push code. Changes must remain uncommitted in the workspace so the user can review diffs and use the IDE's **"Accept all"** or **"Reject all"** buttons. Only stage, commit, or push when the user explicitly instructs to do so. Never commit `.env` or secret files.

@@ -5,9 +5,9 @@
 > **Note**: This file is maintained alongside `AGENTS.md` to ensure full compatibility with all agent environments.
 
 Please refer to the comprehensive guidelines and specifications:
-- **[AGENTS.md](file:///d:/CodeEditor/AGENTS.md)**: Primary agent rules, anti-patterns, phase roadmap, security checklist, and environment variables.
-- **[FINAL_TECHNICAL_REPORT.md](file:///d:/CodeEditor/FINAL_TECHNICAL_REPORT.md)**: Technical architecture, database schemas, REST APIs, Socket.IO events, Docker sandbox, and RAG design.
-- **[UI_DESIGN.md](file:///d:/CodeEditor/UI_DESIGN.md)**: VS Code Dark Modern design tokens, pixel layout geometry, and Monaco Editor setup.
+- **[AGENTS.md](../AGENTS.md)**: Primary agent rules, anti-patterns, phase roadmap, security checklist, and environment variables.
+- **[FINAL_TECHNICAL_REPORT.md](FINAL_TECHNICAL_REPORT.md)**: Technical architecture, database schemas, REST APIs, Socket.IO events, Docker sandbox, and RAG design.
+- **[UI_DESIGN.md](UI_DESIGN.md)**: VS Code Dark Modern design tokens, pixel layout geometry, and Monaco Editor setup.
 
 ---
 
